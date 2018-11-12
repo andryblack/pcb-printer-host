@@ -1,0 +1,15 @@
+[Unit]
+Description=PCB laser printer
+
+[Service]
+User=pcb
+Group=pcb
+ExecStart=/usr/local/bin/pcb-printer /usr/local/share/pcb-laser-printer/app/main.lua \
+	--config=/usr/local/share/pcb-laser-printer/config.lua
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

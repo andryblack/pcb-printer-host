@@ -1,0 +1,12 @@
+Source: pcb-laser-printer
+Maintainer: AndryBlack blackicebox@gmail.com
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9), dh-systemd, liblua5.3-dev, libuv1-dev, libyajl-dev, libpng-dev, libssl-dev
+
+Package: pcb-laser-printer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libyajl2, lua5.3, libuv1, openssl
+Description: PCB priner
+

@@ -1,0 +1,9 @@
+lib
+build
+local
+bin
+*.tar.gz
+debian/pcb-laser-printer
+debian/files
+debian/pcb-laser-printer.substvars 
+

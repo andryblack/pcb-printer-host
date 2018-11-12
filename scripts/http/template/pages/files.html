@@ -1,0 +1,293 @@
+{% layout="layout.html" %}
+
+{-css-}
+<style>
+.files-list-item {
+  height: 32px;
+}
+
+.files-list-item .feather {
+  margin-right: 16px;
+  width: 18px;
+  height: 18px;
+}
+
+
+.files-list-item .btn {
+  height: 24px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.files-list-item .btn-toolbar {
+  display: none;
+}
+
+.files-list-item:hover  .btn-toolbar {
+  display: inline-block;
+}
+
+
+.files-list-item .btn .feather {
+  margin-left: 4px;
+  margin-right: 4px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  width: 18px;
+  height: 18px;
+}
+</style>
+{-css-}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3">
+
+	<nav aria-label="breadcrumb">
+  		<ol class="breadcrumb" id="bc-nav">
+    		<a class="breadcrumb-item" href="/files" >root</a>
+    		{% local _p = '/files' %}
+    		{% for item in (path or ''):gmatch('[^/.]+') do %}
+    			{% _p = _p .. '/' .. item %}
+    			<a class="breadcrumb-item" href="{*_p*}">{*item*}</a>
+    			
+    		{% end %}
+  		</ol>
+	</nav>
+
+	<div class="btn-toolbar mb-2 mb-md-0">
+
+		<div class="dropdown">
+		    <button id="new-folder" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle mr-2"
+		    	data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+		    	data-placement="bottom" title="Create folder" extra-data-toggle="tooltip"
+		    	data-boundary="viewport">
+		      <span data-feather="folder-plus"></span>
+			</button>
+
+	    	 <div class="dropdown-menu p-4" aria-labelledby="new-folder">
+		    	<div class="form-group">
+				    <input type="text" class="form-control" id="new-folder-name" placeholder="Folder name">
+				</div>
+				<button id="new-folder-submit" type="submit" class="btn btn-primary">Create</button>
+	  		</div>
+	  	</div>
+
+	  	<div class="dropdown">
+	    
+	  		<button id="upload" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+		    	data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+		    	data-placement="bottom" title="Upload file" extra-data-toggle="tooltip"
+		    	data-boundary="viewport">
+		      <span data-feather="upload"></span>
+		    </button>
+
+		   
+
+		    <div class="dropdown-menu p-4" aria-labelledby="upload">
+		    	<div class="form-group">
+			    	<div class="custom-file">
+					  <input id="upload-file" type="file" class="custom-file-input" onchange="file_select(this)">
+					  <label class="custom-file-label" for="upload-file" id="upload-file-name"> Choose file.. </label>
+					</div>
+				</div>
+		    	<button id="upload-file-submit" type="submit" class="btn btn-primary">Upload</button>
+	  		</div>
+	  	</div>
+	</div>
+	
+</div>
+
+<div id = "alert_placeholder"></div>
+
+<ul id="files-table" class="list-group">
+</ul>
+
+{-scripts-}
+
+<script type="text/javascript">
+
+function update_content(data) {
+	$(function() {
+		
+
+		$( "#files-table" ).empty();
+		if (data instanceof Array ) {
+		    $.each(data, function(i, item) {
+		    	//console.log('item: ' + item.toString());
+		        var el;
+		        	
+		        if (item.dir) {
+		        	el = $('<a class="pt-1 pb-1">').appendTo('#files-table');
+		        	el.append( feather.icons.folder.toSvg() );
+		        	el.attr('href','/files/{*(path or '')*}/' + item.name );
+		        	el.append($("<strong>").text("["+item.name+"]"));
+		        } else {
+		        	el = $('<il class="pt-1 pb-1">').appendTo('#files-table');
+		        	el.append( feather.icons[item.icon].toSvg())
+		        	el.append(item.name);
+		        }
+
+		        el.addClass("list-group-item")
+		        	.addClass("list-group-item-action")
+		        	.addClass('files-list-item');
+		        	
+
+		        var btns = $('<div class="btn-toolbar float-right">').appendTo(el);
+
+		        if (item.btn) {
+	        		btns.append( $('<button class="btn btn-outline-success btn-sm mr-2 ">') /*visible-on-printer-state-idle*/
+	        			.append(feather.icons[item.btn.icon].toSvg())
+	        			.click(function(event){
+	        				event.stopPropagation();
+	        				event.preventDefault();
+	        				on_file_action(item);
+	        			}));
+		        }
+
+		        btns.append( $('<button class="btn btn-outline-danger btn-sm">')
+		        			.append(feather.icons["trash-2"].toSvg())
+		        			.click(function(event){
+		        				event.stopPropagation();
+		        				event.preventDefault();
+		        				//console.log('click remove ' + item.name);
+		        				remove_file(item.name);
+		        				event.stopPropagation();
+		        			}));
+		       
+		        	
+		    });
+		}
+	});
+}
+
+function load_content() {
+	fetch('/api/files?path=/{*(path or '')*}')
+	  .then(checkStatus)
+	  .then(parseJSON)
+	  .then(function(data) {
+	  	update_content(data)
+	  }).catch(function(error) {
+	    console.log('request failed', error)
+	  })	
+}
+load_content();
+
+$('#new-folder-submit').click(function(){
+	var folder = $('#new-folder-name').val();
+	$('#new-folder-name').val('');
+	//console.log('create new folder: ' + folder);
+	if (folder != "") {
+		fetch('/api/mkdir?path=/{*(path or '')*}/'+ folder,{method:'POST'})
+		  .then(checkStatus)
+		  .then(parseJSON)
+		  .then(checkResultStatus)
+		  .then(function(data) {
+		  	bootstrap_alert.success(
+	  			'<p>Folder <strong>' + data.path + '</strong> created.</p>'
+	  		);
+	  		load_content();
+		  }).catch(function(error) {
+		    console.log('request failed', error)
+		    bootstrap_alert.error(
+		  			'<p>Failed create folder <strong>' + folder + '</strong></p>'+
+		  			'<hr><p class="mb-0">' + error + '</p>'
+		  		);
+		  })
+	}
+});
+
+function file_select(event) {
+	var file = event.files[0];
+	if (file) {
+		//console.log("select file: " + file.name);
+		$('#upload-file-name').text(file.name);
+	}
+}
+
+$('#upload-file-name').click(function(){
+	var file = findElementById('upload-file').files[0];
+	if (file) {
+		console.log("has file:" + file.name);
+	} else {
+		console.log("empty");
+		$('upload-file').click();
+	}
+});
+
+$('#upload-file-submit').click(function(){
+	var file = document.getElementById('upload-file').files[0];
+	var data = new FormData()
+	data.append('file', file);
+	data.append('path', '/{*(path or '')*}');
+	fetch('/api/upload', {
+	  method: 'POST',
+	  body: data
+	})
+		.then(checkStatus)
+		.then(parseJSON)
+		.then(checkResultStatus)
+		.then(function(data) {
+			bootstrap_alert.success(
+	  			'<p>File <strong>' + data.name + '</strong> uploaded.</p>'
+	  		);
+	  		load_content();
+		}).catch(function(error) {
+		    console.log('request failed', error);
+		    bootstrap_alert.error(
+		  			'<p>Failed upload file <strong>' + file.name + '</strong></p>'+
+		  			'<hr><p class="mb-0">' + error + '</p>'
+		  		);
+		});
+});
+
+function remove_file(file) {
+	fetch('/api/remove?file=/{*(path or '')*}/' + file,{method: 'POST'})
+	  .then(checkStatus)
+	  .then(parseJSON)
+	  .then(checkResultStatus)
+	  .then(function(data) {
+	  	bootstrap_alert.success(
+  			'<p>File <strong>' + file + '</strong> removed.</p>'
+  		);
+  		load_content();
+	  }).catch(function(error) {
+	    	bootstrap_alert.error(
+		  			'<p>Failed remove file <strong>' + file + '</strong></p>'+
+		  			'<hr><p class="mb-0">' + error + '</p>'
+		  		);
+	  })
+}
+// $('upload-file-select').click(function(){
+// 	$('#upload-file').click();
+// });
+
+function on_file_action(item) {
+	console.log('click file action /{*(path or '')*}/'+ item.name + ' ' + item.btn.action);
+	fetch('/api/' + item.btn.action + '?file=/{*(path or '')*}/' + item.name, {
+		method: 'POST',
+	})
+	  .then(checkStatus)
+	  .then(parseJSON)
+	  .then(checkResultStatus)
+	  .then(function(data) {
+	  	if (data.redirect) {
+	  		window.location.href = data.redirect;
+	  	} else {
+	  		bootstrap_alert.success(
+  				'<p>File <strong>' + file + '</strong> opened.</p>'
+  			);
+  			load_content();
+	  	}
+	  }).catch(function(error) {
+	    	bootstrap_alert.error(
+		  			'<p>Failed open file <strong>' + file + '</strong></p>'+
+		  			'<hr><p class="mb-0">' + error + '</p>'
+		  		);
+	  })
+}
+
+</script>
+
+{-scripts-}
+

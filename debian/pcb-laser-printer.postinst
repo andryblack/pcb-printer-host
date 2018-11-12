@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# source debconf library
+. /usr/share/debconf/confmodule
+
+PCBUSER=pcb
+
+if [ "$1" = configure ]; then
+
+	adduser --system \
+            --quiet \
+            --disabled-password \
+            --group "$PCBUSER"
+
+	usermod -aG dialout pcb
+	usermod -aG video pcb
+fi
+
+
+
+#DEBHELPER#
+

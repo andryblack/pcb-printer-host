@@ -1,0 +1,56 @@
+#!/usr/bin/make -f
+
+prefix = /usr/local
+PACKAGE = pcb-laser-printer
+DESTDIR = debian/$(PACKAGE)
+
+.PHONY: build build-arch binary-arch clean binary
+
+clean:
+		make clean
+
+build-arch:
+		make release
+
+build:	build-arch
+		
+
+binary-arch:
+		install -d -m 775 $(DESTDIR)$(prefix)/bin
+		install bin/pcb-printer $(DESTDIR)$(prefix)/bin
+		install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/lib
+		for d in `find extlib/llae/scripts -mindepth 1 -type d | sed -e 's/extlib\/llae\/scripts\///'`; do install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/lib/$$d; done
+		for f in `find extlib/llae/scripts -type f | sed -e 's/extlib\/llae\/scripts\///'`; do install -m 644 extlib/llae/scripts/$$f $(DESTDIR)$(prefix)/share/$(PACKAGE)/lib/$$f; done
+
+		install -m 644 extlib/router.lua/router.lua $(DESTDIR)$(prefix)/share/$(PACKAGE)/lib/router.lua
+
+		for d in `find extlib/lua-resty-template/lib -mindepth 1 -type d | sed -e 's/extlib\/lua-resty-template\/lib\///'`; do install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/lib/$$d; done
+		for f in `find extlib/lua-resty-template/lib -type f | sed -e 's/extlib\/lua-resty-template\/lib\///'`; do install -m 644 extlib/lua-resty-template/lib/$$f $(DESTDIR)$(prefix)/share/$(PACKAGE)/lib/$$f; done
+
+		install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/app
+		for d in `find scripts -mindepth 1 -type d | sed -e 's/scripts\///'`; do install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/app/$$d; done
+		for f in `find scripts -type f | sed -e 's/scripts\///'`; do install -m 644 scripts/$$f $(DESTDIR)$(prefix)/share/$(PACKAGE)/app/$$f; done
+
+		install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/www
+		for d in `find www -mindepth 1 -type d | sed -e 's/www\///'`; do install -d -m 775 $(DESTDIR)$(prefix)/share/$(PACKAGE)/www/$$d; done
+		for f in `find www -type f | sed -e 's/www\///'`; do install -m 644 www/$$f $(DESTDIR)$(prefix)/share/$(PACKAGE)/www/$$f; done
+
+		touch $(DESTDIR)$(prefix)/share/$(PACKAGE)/config.lua
+		chmod 644 $(DESTDIR)$(prefix)/share/$(PACKAGE)/config.lua
+
+		echo "files='/home/pcb'" > $(DESTDIR)$(prefix)/share/$(PACKAGE)/config.lua
+		echo "http_root='$(prefix)/share/$(PACKAGE)/www'" >> $(DESTDIR)$(prefix)/share/$(PACKAGE)/config.lua
+		echo "modules='$(prefix)/share/$(PACKAGE)/lib/?.lua'" >> $(DESTDIR)$(prefix)/share/$(PACKAGE)/config.lua
+		
+
+		dh_gencontrol
+
+		dh_systemd_enable
+		dh_installinit
+		dh_systemd_start
+
+		dh_installdeb
+		
+		dh_builddeb
+
+binary: binary-arch

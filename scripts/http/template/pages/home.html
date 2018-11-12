@@ -1,0 +1,113 @@
+{% layout="layout.html" %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+
+  <div><!-- place --></div>
+
+  
+
+  <div class="btn-toolbar mb-2 mb-md-0">
+   
+    <button id="printer-disconnect" class="btn btn-sm btn-outline-danger mr-2 visible-on-printer-state-idle">
+      <span data-feather="power"></span>
+      Disconnect</button>
+    <button id="printer-connect" class="btn btn-sm btn-outline-secondary mr-2 visible-on-printer-state-disconnected">
+      <span data-feather="power"></span>
+      Connect</button>
+    <button id="printer-pause" class="btn btn-sm btn-outline-secondary mr-2 visible-on-printer-state-printing">
+      <span data-feather="pause"></span>
+      Pause</button>
+    <button id="printer-stop" class="btn btn-sm btn-outline-danger mr-2 visible-on-printer-state-paused">
+      <span data-feather="stop-circle"></span>
+      Stop</button>
+    <button id="printer-resume" class="btn btn-sm btn-outline-secondary mr-2 visible-on-printer-state-paused">
+      <span data-feather="pause"></span>
+      Resume</button>
+
+    
+  </div>
+
+  
+
+</div>
+
+<div id = "alert_placeholder"></div>
+
+<div class="printer-control">
+  
+  <object type="image/svg+xml" data="/img/printer-panel.svg" id="svg-printer-panel">
+  </object>
+
+</div>
+
+
+
+{-scripts-}
+
+<script type="text/javascript">
+
+function on_state_changed(state) {
+
+}
+function connect_action(action_name) {
+  $('#printer-' + action_name).click(function(){
+    fetch('/api/' + action_name,{method:'POST'})
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(checkResultStatus)
+      .then(function(data) {
+         update_state(data);
+      }).catch(function(error) {
+          bootstrap_alert.error(
+              '<p>Failed ' + action_name + '</p>'+
+              '<hr><p class="mb-0">' + error + '</p>'
+            );
+      });
+  });
+}
+connect_action('disconnect');
+connect_action('connect');
+connect_action('pause');
+connect_action('resume');
+connect_action('stop');
+
+var svg_obj = $('#svg-printer-panel');
+svg_obj.get(0).addEventListener('load',function(){
+    console.log('onload');
+    let svg = $(svg_obj.get(0).contentDocument);
+    var btn_home_x = svg.find('#btn-home-x');
+    btn_home_x.click(function(){
+        do_printer_action('home-x');
+    });
+    svg.find('#btn-home-y').click(function(){
+        do_printer_action('home-y');
+    });
+    svg.find('#btn-home-z').click(function(){
+        do_printer_action('home-z');
+    });
+    svg.find('#btn-home-all').click(function(){
+        do_printer_action('home-all');
+    });
+
+
+
+},true);
+
+
+$('#calibrate').click(function(){
+  fetch('/api/calibrate',{method:'POST'})
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(checkResultStatus)
+      .then(function(data) {
+         update_state(data);
+      }).catch(function(error) {
+          bootstrap_alert.error(
+              '<p>Failed calibrate</p>'+
+              '<hr><p class="mb-0">' + error + '</p>'
+            );
+      });
+});
+
+</script>
+
+{-scripts-}

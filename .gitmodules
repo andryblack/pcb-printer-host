@@ -1,0 +1,9 @@
+[submodule "extlib/llae"]
+	path = extlib/llae
+	url = git@github.com:andryblack/llae.git
+[submodule "extlib/lua-resty-template"]
+	path = extlib/lua-resty-template
+	url = https://github.com/bungle/lua-resty-template.git
+[submodule "extlib/router.lua"]
+	path = extlib/router.lua
+	url = https://github.com/APItools/router.lua.git

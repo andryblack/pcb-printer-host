@@ -1,0 +1,261 @@
+{% layout="layout.html" %}
+{-css-}
+<style>
+/*#svg-viewport {
+  height: 300px;
+  width: 100%;
+  border: 1px;
+  border-style: solid;
+  background: url({*settings.camera_url*});
+  background-repeat: no-repeat; 
+  background-size: cover;
+}*/
+.viewport-video {
+  width: {*settings.camera_size_x*}px;
+  height: {*settings.camera_size_y*}px;
+  position: absolute;
+  transform: scaleX({*settings.camera_flip_x and -1 or 1*}) scaleY({*settings.camera_flip_y and -1 or 1*});
+}
+#svg-content {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+  border-width: 1px solid black;
+  position: absolute;
+}
+</style> 
+{-css-}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+
+  
+
+  <div class="btn-toolbar mb-2 mb-md-0 flex-wrap">
+    
+  </div>
+  
+
+  <div class="" style="width: 100%;">
+  Laser PWM:
+    <div class="row mb-1" >
+      <span id="laser-pwm-value" class="col-sm-1"></span><input type="range" min="0" max="1024" value="0" class="slider col-sm-10" id="laser-pwm">
+    </div>
+  </div>
+
+</div>
+
+<div id = "alert_placeholder"></div>
+
+<div class="row">
+  <div >
+    <div class="pcb-view-cont" style="width: 640px; height: 480px; border:1px solid black;">
+      <div id="svg-viewport" style="width: 100%; height: 100%" >
+        <img id="video-display" class="viewport-video" src="{*settings.camera_url*}" />
+        <svg id="svg-content" viewBox="0 0 {*settings.camera_size_x*} {*settings.camera_size_y*}" xmlns="http://www.w3.org/2000/svg" >
+          <g transform="translate({*settings.camera_pos_x*},{*settings.camera_pos_y*})" opacity="0.4">
+            <line x1="-100" y1="0" x2="100" y2="0" style="stroke:rgb(255,0,0);stroke-width:1" />
+            <line x1="0" y1="-100" x2="0" y2="100" style="stroke:rgb(255,0,0);stroke-width:1" />
+            <circle r="30" stroke="rgb(0,255,0)" stroke-width="1" fill="none" />
+            <circle r="50" stroke="rgb(0,0,255)" stroke-width="1" fill="none" />
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  
+  <div class="form ml-2" >
+    <div class="form-row ">
+      <div class="form-group mb-0"> 
+          <button id="printer-zero-x" class="btn btn-outline-danger mr-2">
+            <span data-feather="x-circle"></span>Zero X</button>
+      </div>
+      <div class="form-group mb-0"> 
+        <button id="printer-zero-y" class="btn btn-outline-danger mr-2">
+          <span data-feather="x-circle"></span>Zero Y</button>
+      </div>
+      <div class="form-group mb-0"> 
+        <button id="calibrate" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
+    disabled="true">
+            <span data-feather="compass"></span>
+        </button> 
+      </div>
+    </div>
+    <div class="form-row">
+      <button id="move-up" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
+    disabled="true">
+            <span data-feather="arrow-up-circle"></span>
+      </button> 
+      <button id="move-left" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
+        disabled="true">
+            <span data-feather="arrow-left-circle"></span>
+      </button> 
+      <button id="move-right" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
+        disabled="true">
+            <span data-feather="arrow-right-circle"></span>
+      </button> 
+      <button id="move-down" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
+        disabled="true">
+            <span data-feather="arrow-down-circle"></span>
+      </button> 
+      <div class="dropdown mt-1 mr-4">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdown-select-step-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            1.0
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdown-select-step-button" id="dropdown-select-step-items">
+            <a class="dropdown-item" href="#">0.1</a>
+            <a class="dropdown-item" href="#">1.0</a>
+            <a class="dropdown-item" href="#">10.0</a>
+            <a class="dropdown-item" href="#">100.0</a>
+          </div>
+      </div>
+    </div>
+    <div class="form-row">
+{% local p1 = printer.pcb:get_pnt('pnt1') 
+  if p1 then
+    %} 
+      <div class="form-group mt-1 mb-0"> 
+          <button id="set-pnt1" class="btn btn-outline-info mr-2" data-pnt="pnt1">
+            <span data-feather="crosshair"></span>Set P1</button>
+      </div>
+   {%
+  end
+  local p2 = printer.pcb:get_pnt('pnt2') 
+  if p2 then
+    %} 
+       <div class="form-group mt-1 mb-0"> 
+          <button id="set-pnt2" class="btn btn-outline-info mr-2" data-pnt="pnt2">
+            <span data-feather="crosshair"></span>Set P2</button>
+      </div>
+    {%
+  end
+%}
+    </div>
+  </div>
+</div>
+
+<div class="printer-control">
+  
+</div>
+
+
+
+
+
+{-scripts-}
+
+<script type="text/javascript">
+
+function on_state_changed(state) {
+
+}
+
+
+function update_svg_view() {
+  let svg_content = $('#svg-content');
+  let svg_vp = $('#svg-viewport');
+  let w = svg_vp.width();
+  let h = svg_vp.height();
+  svg_content.width(w);
+  svg_content.height(h);
+}
+
+update_svg_view();
+
+$(window).resize(function() {
+    update_svg_view();
+});
+
+let move_step = 1.0;
+
+$('#dropdown-select-step-items .dropdown-item').click(function(e){
+    move_step = parseFloat(e.target.innerHTML);
+    $('#dropdown-select-step-button').html(move_step);
+});
+
+$('#printer-zero-x').click(function(){
+    do_printer_action("zero-x");
+});
+$('#printer-zero-y').click(function(){
+    do_printer_action("zero-y");
+});
+
+    
+$('#move-left').click(function(){
+    do_printer_action("move-x",{x:-move_step});
+});
+$('#move-right').click(function(){
+  do_printer_action("move-x",{x:move_step});
+});
+$('#move-up').click(function(){
+  do_printer_action("move-y",{y:move_step});
+});
+$('#move-down').click(function(){
+  do_printer_action("move-y",{y:-move_step});
+});
+
+$("#laser-pwm").on("input",function(e) {
+    let val = parseFloat($("#laser-pwm").val());
+    $("#laser-pwm-value").html(val+"%");
+    do_printer_action("setup-laser-pwm",{v:val});
+});
+
+page_ctx.on_update_state = function(state) {
+  let need_update_pos = false;
+    if (state.pos_x) {
+      center_x = state.pos_x;
+      need_update_pos = true;
+    }
+    if (state.pos_y) {
+      center_y = state.pos_y;
+      need_update_pos = true;
+    }
+    if (need_update_pos) {
+      update_svg_view();
+    }
+};
+
+function setup_point_offset(e) {
+  let pnt = $(e.target).data('pnt');
+  fetch('/api/pcb/offset_pnt',{
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body:JSON.stringify({
+          pnt: pnt,
+          x: center_x,
+          y: center_y
+        })
+      })
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(checkResultStatus)
+      .then(function(data) {
+        if (data.tr) {
+          update_svg_view();
+        }
+      }).catch(function(error) {
+        console.log('request failed', error);
+      });
+}
+
+$("#set-pnt1").click(setup_point_offset);
+$("#set-pnt2").click(setup_point_offset);
+var download_img = new Image();
+
+function update_camera_image() {
+  download_img.src = "{*settings.camera_url*}?time="+ new Date().getTime();
+}
+update_camera_image();
+
+download_img.onload = function(){
+    document.getElementById('video-display').src = this.src;
+    setTimeout(update_camera_image, 1000/15);
+};
+
+
+
+</script>
+
+{-scripts-}

@@ -1,0 +1,222 @@
+body {
+  font-size: .875rem;
+}
+
+.feather {
+  width: 16px;
+  height: 16px;
+  vertical-align: text-bottom;
+}
+
+.navbar .feather {
+  width: 24px;
+  height: 24px;
+}
+
+.navbar button .feather {
+  width: 20px;
+  height: 20px;
+}
+
+
+
+.terminal-list-group {
+  /*min-height: 300px;*/
+  height: 300px;
+  overflow-y:scroll; 
+}
+
+.terminal-list-group code {
+  background-color: #f0f0f0;
+  color: #0f0f0f;
+}
+
+.terminal-list-group code:hover {
+  background-color: #a0a0a0;
+  color: #0f0f0f;
+}
+
+.terminal-list-group code.terminal-line-rx {
+  background-color: #e0e0e0;
+  color: #5f5f5f;
+}
+
+.terminal-list-group code.terminal-line-rx:hover {
+  background-color: #a0a0a0;
+}
+
+/*
+ * Sidebar
+ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100; /* Behind the navbar */
+  padding: 0;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 48px; /* Height of navbar */
+  height: calc(100vh - 48px);
+  padding-top: .5rem;
+  overflow-x: hidden;
+  overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+}
+
+.sidebar .nav-link {
+  font-weight: 500;
+  color: #333;
+}
+
+.sidebar .nav-link .feather {
+  margin-right: 4px;
+  color: #999;
+}
+
+.sidebar .nav-link.active {
+  color: #007bff;
+}
+
+.sidebar .nav-link:hover .feather,
+.sidebar .nav-link.active .feather {
+  color: inherit;
+}
+
+.sidebar-heading {
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+/*
+ * Navbar
+ */
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, .25);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+}
+
+.navbar .form-control {
+  padding: .75rem 1rem;
+  border-width: 0;
+  border-radius: 0;
+}
+
+.form-control-dark {
+  color: #fff;
+  background-color: rgba(255, 255, 255, .1);
+  border-color: rgba(255, 255, 255, .1);
+}
+
+.form-control-dark:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+}
+
+/*
+ * Utilities
+ */
+
+.border-top { border-top: 1px solid #e5e5e5; }
+.border-bottom { border-bottom: 1px solid #e5e5e5; }
+
+.invisibel-file-input {
+    visibility: hidden;
+}
+
+/* printer state */
+
+.visible-on-printer-state-disconnected {
+  display: none;
+}
+
+.printer-state-disconnected .visible-on-printer-state-disconnected {
+  display: inline-block;
+}
+
+.visible-on-printer-state-idle {
+  display: none;
+}
+
+.printer-state-idle .visible-on-printer-state-idle {
+  display: inline-block;
+}
+
+.visible-on-printer-state-printing {
+  display: none;
+}
+
+.printer-state-printing .visible-on-printer-state-printing {
+  display: inline-block;
+}
+
+.visible-on-printer-state-paused {
+  display: none;
+}
+
+.printer-state-paused .visible-on-printer-state-paused {
+  display: inline-block;
+}
+
+.disabled-on-printer-state-idle {
+
+}
+
+.enabled-on-printer-state-idle {
+  
+}
+
+/* temperatur */
+#temperature-chart {
+  
+}
+
+.ace-editor {
+    
+}
+
+
+/* The slider itself */
+.slider {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    height: 25px; /* Specified height */
+    background: #d3d3d3; /* Grey background */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+    transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+}
+
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */ 
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #4CAF50; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+    width: 25px; /* Set a specific slider handle width */
+    height: 25px; /* Slider handle height */
+    background: #4CAF50; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+

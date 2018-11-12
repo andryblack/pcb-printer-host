@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css" >
+    <link rel="stylesheet" href="/css/styles.css" >
+
+    {% if blocks.css then %}
+     {*blocks.css*}
+    {% end %}
+
+
+    <title>BlackBox</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
+
+      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">BlackBox</a>
+      <!-- <span class="navbar-text ml-3 mr-auto">Temperature</span> -->
+      <div id="state-title" class="navbar-text col-sm-2 ml-3">{*printer_state.state*}</div> 
+      <div id="state-progress" class="progress col-sm mr-3 ml-3 pl-0 pr-0">
+        <div class="progress-bar" style="width:{* (printer_state.progress or 0)*100 *}%"></div>
+      </div>
+      <span id="printer-pos" class="navbar-text col-sm-1 mr-3">
+      </span>
+      
+      <ul class="navbar-nav mr-3">
+        <li class="nav-item">
+          <a class="nav-link" href="/settings"><span data-feather="settings"></span></a>
+        </li>
+      </ul>
+
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        {(fragments/sidebar.html)}
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4 printer-state-{*printer:get_state().state*}" id="main" >
+          {*view*}
+
+          
+        </main>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="/js/jquery-3.3.1.slim.min.js" ></script>
+    <script src="/js/popper.min.js" ></script>
+    <script src="/js/bootstrap.min.js" ></script>
+
+    <script src="/js/feather.min.js"></script>
+
+    {% if blocks.jslibs then %}
+     {*blocks.jslibs*}
+    {% end %}
+
+    <script>
+      feather.replace()
+
+      $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+      })
+      $(function () {
+        $('[extra-data-toggle="tooltip"]').tooltip()
+      })
+
+      var state = {* json.encode( printer_state ) *};
+
+      $('.enabled-on-printer-state-{*printer_state.state*}').prop( "disabled", false );
+      $('.disabled-on-printer-state-{*printer_state.state*}').prop( "disabled", true );
+
+      
+
+      var page_ctx = {
+        printer_resolution_x: {*printer:get_resolution_x()*},
+        printer_resolution_y: {*printer:get_resolution_y()*}
+      };
+
+    </script>
+
+
+
+    <script src="/js/application.js"></script>
+
+    {% if blocks.scripts then %}
+     {*blocks.scripts*}
+    {% end %}
+
+    <script type="text/javascript">
+        update_state(state);
+        setInterval(load_state,1000);
+
+
+        
+    </script>
+  </body>
+</html>

@@ -1,0 +1,294 @@
+{% layout="layout.html" %}
+{-css-}
+<style>
+#draw-container {
+  height: 300px;
+  width: 100%;
+  border: 1px;
+  border-style: solid;
+}
+</style>
+{-css-}
+{-jslibs-}
+
+{-jslibs-}
+
+<div id = "alert_placeholder border-bottom" ></div>
+
+<div id="controls" >
+	Position range:
+	<div class="row mt-1">
+		<span id="position-left-value" class="col-sm-1"></span><input type="range" min="1" max="{* settings.printer_width *}" value="1" class="slider col-sm-10" id="position-left">
+  	</div>
+  	<div class="row">
+  		<span class="col-sm-1"></span><input type="range" min="1" max="{* settings.printer_width *}" value="{* settings.printer_width *}" class="slider col-sm-10" id="position-right"><span class="col-sm-1" id="position-right-value"></span>
+	</div>
+	Speed:
+	<div class="row mb-1">
+		<span id="speed-value" class="col-sm-1"></span><input type="range" min="{* settings.motor_min_speed *}" max="{* settings.motor_max_speed *}" value="{* settings.motor_min_speed *}" class="slider col-sm-10" id="speed">
+  	</div>
+</div>
+
+
+<div id="draw-container">
+  <canvas id="speed-chart" width="900" height="380"></canvas>
+</div>
+
+<div class="form-inline">
+	<button id="move-left" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" disabled="true">
+	      <span data-feather="arrow-left-circle"></span></button> 
+	<button id="move-stop" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" disabled="true">
+	      <span data-feather="stop-circle"></span></button> 
+	<button id="move-right" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-4" disabled="true">
+	      <span data-feather="arrow-right-circle"></span></button> 
+	<div class="input-group mt-1 col-sm-2">
+		<div class="input-group-prepend" id="input-P-prepend">
+          <span class="input-group-text">P</span>
+        </div>
+		<input type="number" step="any" id="input-P" class="form-control" aria-describedby="input-P-prepend" value="{*settings.motor_pid_P*}" />
+	</div>
+	<div class="input-group mt-1 col-sm-2">
+		<div class="input-group-prepend" id="input-I-prepend">
+          <span class="input-group-text">I</span>
+        </div>
+		<input type="number" step="any" id="input-I" class="form-control" aria-describedby="input-I-prepend" value="{*settings.motor_pid_D*}"/>
+	</div>
+	<div class="input-group mt-1 col-sm-2">
+		<div class="input-group-prepend" id="input-D-prepend">
+          <span class="input-group-text">D</span>
+        </div>
+		<input type="number" step="any" id="input-D" class="form-control " aria-describedby="input-D-prepend" value="{*settings.motor_pid_D*}"/>
+	</div>
+	<button id="upload-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-1" disabled="true">
+	      <span data-feather="upload"></span></button> 
+	 <button id="save-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-4" disabled="true">
+	      <span data-feather="save"></span></button> 
+	
+</div>
+
+{-scripts-}
+
+<script type="text/javascript">
+	$("#position-left-value").html($("#position-left").val()+"mm");
+	$("#position-right-value").html($("#position-right").val()+"mm");
+	$("#speed-value").html($("#speed").val()+"mm/s");
+	 
+	$("#position-left").on("input",function(e) {
+  		$("#position-left-value").html($("#position-left").val()+"mm");
+	});
+	$("#position-right").on("input",function(e) {
+  		$("#position-right-value").html($("#position-right").val()+"mm");
+	});
+	$("#speed").on("input",function(e) {
+  		$("#speed-value").html($("#speed").val()+"mm/s");
+	});
+
+	$('#move-left').click(function(){
+	  do_printer_action("pid-move",{p:$("#position-left").val(),s:$("#speed").val()});
+	});
+	$('#move-right').click(function(){
+	  do_printer_action("pid-move",{p:$("#position-right").val(),s:$("#speed").val()});
+	});
+	$('#move-stop').click(function(){
+	  do_printer_action("move-stop");
+	});
+	$('#upload-pid').click(function(){
+		let P = parseFloat($("#input-P").val());
+		let I = parseFloat($("#input-I").val());
+		let D = parseFloat($("#input-D").val());
+	  	do_printer_action("setup-pid",{P:P,I:I,D:D});
+	});
+
+	 var canvas = $("#speed-chart")[0];
+
+	 var canvas_size = {
+        width: canvas.width,
+        height: canvas.height
+      }
+     function scale_canvas(context) {
+        var width = canvas_size.width;
+        var height = canvas_size.height;
+
+        var devicePixelRatio = window.devicePixelRatio || 1;
+        var backingStoreRatio = (
+          context.webkitBackingStorePixelRatio ||
+          context.mozBackingStorePixelRatio ||
+          context.msBackingStorePixelRatio ||
+          context.oBackingStorePixelRatio ||
+          context.backingStorePixelRatio || 1
+        );
+        var ratio = devicePixelRatio / backingStoreRatio;
+        if (devicePixelRatio !== backingStoreRatio) {
+          // set the 'real' canvas size to the higher width/height
+          canvas.width = width * ratio;
+          canvas.height = height * ratio;
+          // ...then scale it back down with CSS
+          canvas.style.width = width + 'px';
+          canvas.style.height = height + 'px';
+        }
+        else {
+          // this is a normal 1:1 device; just scale it simply
+          canvas.width = width;
+          canvas.height = height;
+          canvas.style.width = '';
+          canvas.style.height = '';
+        }
+        // scale the drawing context so everything will work at the higher ratio
+        context.scale(ratio, ratio);
+      }
+
+     function draw_graph(ctx) {
+          
+
+          var width = canvas_size.width;
+          var height = canvas_size.height;
+
+         
+         let data = page_ctx.speed_info;
+
+         if (!data) {
+         	return;
+         }
+
+          ctx.clearRect(0,0,width,height);
+
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(4,height-4);
+          ctx.lineTo(width-4,height-4); 
+          ctx.stroke();
+
+          if (data.length < 2) {
+            return;
+          }
+          if (!data[0]) {
+          	return;
+          }
+          if (data[0].speed === undefined) {
+          	return;
+          }
+
+          ctx.save();
+          ctx.strokeStyle = '#aaaacc';
+          ctx.globalAlpha = 0.5;
+          //ctx.setLineDash([5,5]);
+          var step = (width - 8) / data.length;
+          let istep = Math.floor(step);
+          if (istep < 2) {
+          	istep = 2;
+          }
+          ctx.beginPath();
+          var  pos_x = 0;
+          for (var i = 0;i < data.length;i++) {
+            ctx.moveTo(pos_x,4);
+            ctx.lineTo(pos_x,height);
+            pos_x += istep;
+          }
+          ctx.stroke();
+          ctx.restore();
+
+
+
+          
+          var max_speed = data[0].speed;;
+          var max_pwm = data[0].pwm;
+
+          if (page_ctx.target_speed) {
+          	max_speed = page_ctx.target_speed;	
+          }
+
+          for (var hi = 0;hi<data.length;hi++) {
+              var pwm = data[hi].pwm;
+              var speed = data[hi].speed;
+              if (pwm > max_pwm) {
+              	max_pwm = pwm;
+              }
+              if (speed > max_speed) {
+              	max_speed = speed;
+              }
+           }
+          
+
+          if (max_pwm < 50) {
+            max_t = 50;
+          }
+          if (max_speed < 10) {
+          	max_speed = 10;
+          }
+
+          max_speed = Math.floor(max_speed / 10 + 1) * 10;
+          var scale_y_speed = (height - 8) / (max_speed);
+          var scale_y_pwm = (height - 8) / 1024;
+
+          if (page_ctx.target_speed) {
+          	ctx.save();
+          	ctx.strokeStyle = "#00FF00";
+          	ctx.beginPath();
+          	ctx.moveTo(0,height - 4 - scale_y_speed * page_ctx.target_speed);
+          	ctx.lineTo(width,height - 4 - scale_y_speed * page_ctx.target_speed);
+          	ctx.stroke();
+          	ctx.restore();
+          }
+
+          ctx.save();
+          ctx.strokeStyle = "#0000FF";
+          ctx.beginPath();
+      		pos_x = 0;
+      		ctx.moveTo(pos_x,height - 4 - scale_y_pwm * data[0].pwm);
+          for (var ei = 1;ei<data.length;ei++) {
+            var el = data[ei];
+            pos_x += step;
+            var pos_y = height - 4 - scale_y_pwm * el.pwm;
+           	ctx.lineTo(pos_x,pos_y);
+          }
+          ctx.stroke();
+          ctx.restore();
+
+
+          ctx.save();
+          ctx.strokeStyle = "#ff0000";
+          ctx.beginPath();
+      		pos_x = 0;
+      		ctx.moveTo(pos_x,height - 4 - scale_y_speed * data[0].speed);
+          for (var ei = 1;ei<data.length;ei++) {
+            var el = data[ei];
+            pos_x += step;
+            var pos_y = height - 4 - scale_y_speed * el.speed;
+           	ctx.lineTo(pos_x,pos_y);
+          }
+          ctx.stroke();
+          ctx.restore();
+
+     }
+
+     function on_resize() {
+        var draw_container = $('#draw-container')[0];
+        var width = Math.floor(draw_container.clientWidth-8);
+        var height = draw_container.clientHeight;
+        canvas_size.width = width;
+        canvas_size.height = height;
+        var ctx = canvas.getContext('2d');
+        scale_canvas(ctx);
+        draw_graph(ctx);
+      }
+
+     window.onresize = on_resize;
+
+      on_resize();
+
+	function update_speed_info(speed_info,target_speed) {
+		page_ctx.speed_info = speed_info;
+		page_ctx.target_speed = target_speed;
+		draw_graph(canvas.getContext('2d'));
+	}
+	page_ctx.state_info = {
+		need_speed_info: true
+	}
+	page_ctx.on_update_state = function(state) {
+		if (state.speed_info) {
+			update_speed_info(state.speed_info,state.target_speed);
+		}
+	};
+</script>
+
+{-scripts-}
