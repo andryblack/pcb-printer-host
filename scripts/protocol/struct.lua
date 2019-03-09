@@ -187,6 +187,15 @@ end
 
 struct_mt.__index = struct_mt
 
+_M.format_bytes = function ( d )
+	local a = {}
+	for i=1,#d do
+		local b = string.byte(d,i)
+		table.insert(a,string.format('%02x',b))
+	end
+	return table.concat(a,',')
+end
+
 function _M.sizeof( s )
 	local r = 0
 	for _,v in ipairs(s) do

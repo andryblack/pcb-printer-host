@@ -141,6 +141,7 @@ function Protocol:_process_packet( data )
 		return
 	end
 	if not CRC8.check(data,len-1,string.byte(data,len)) then
+		print('packet',struct.format_bytes(data))
 		print('invalid packet crc',string.format('%02x/%02x',string.byte(data,len),CRC8.calc(data,len-1)))
 		return
 	end
