@@ -194,14 +194,14 @@ Parser._G[4]= function( self, data )
 end
 Parser._G[36]= function( self, data )
 	self._region = Region.new(self,self._current_pos,self._polarity)
-	print('start region',self._polarity)
+	--print('start region',self._polarity)
 end
 Parser._G[37]= function( self, data )
 	if not self._region then
 		error('region not started')
 	end
 	self._region:finish()
-	print('finish region',self._polarity)
+	--print('finish region',self._polarity)
 	
 	if self._canvas then
 		if self._region._polarity == 'D' then
@@ -218,7 +218,7 @@ Parser._G[37]= function( self, data )
 		--print('assign first geometry',self._region._geometry:dump())
 		self._canvas = self._region._geometry
 	end
-	self._canvas:flush()
+	--self._canvas:flush()
 	self._region = nil
 end
 Parser._G[70]= function ( self , data )
@@ -383,6 +383,7 @@ function Parser:finish(  )
 end
 
 function Parser:polygons( scale )
+	self._canvas:flush()
 	return self._canvas:export(((scale or 1.0) * self._mm_scale) / self._intscale)
 end
 
@@ -405,7 +406,7 @@ function Parser:rm_circle( x,y,diam )
 		y / self._mm_scale * self._intscale,
 		(diam/2) / self._mm_scale * self._intscale,32)
 	self._canvas:difference(c)
-	self._canvas:flush()
+	--self._canvas:flush()
 end
 
 return Parser

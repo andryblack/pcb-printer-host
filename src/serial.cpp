@@ -69,6 +69,7 @@ bool Serial::configure_baud(lua_State* L,int baud) {
 		// case 4000000: baud_val = B4000000; break;
 	};
 	if (!baud_val) {
+		std::cerr << "unsupported baudrate " << baud << std::endl;
 		return false;
 	}
 	cfsetispeed(&options, baud_val);
@@ -81,6 +82,7 @@ bool Serial::configure_baud(lua_State* L,int baud) {
 	options.c_cflag &= ~CRTSCTS;
 
 	 options.c_iflag &= ~IGNBRK;
+	 options.c_iflag &= ~(INLCR | IGNCR | ICRNL | IUCLC); // no char processing
 	options.c_lflag = 0;                // no signaling chars, no echo,
  //                                        // no canonical processing
  	  options.c_oflag = 0;                // no remapping, no delays

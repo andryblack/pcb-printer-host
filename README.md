@@ -18,7 +18,7 @@ $ ssh pi@raspberrypi.local
 ```bash
 $ sudo sudo apt-get update
 $ sudo apt-get upgrade
-$ sudo apt-get install wget libyajl2 lua5.3 libuv1 
+$ sudo apt-get install wget libyajl2 lua5.3 libuv1 openssl
 ```
 
 * download printer software
@@ -36,13 +36,12 @@ $ sudo dpkg -I pcb-laser-printer.deb
 dependencies:
 ```bash
 $ sudo apt-get install build-essential git 
-$ sudo apt-get install liblua5.3-dev libuv1-dev libyajl-dev libpng-dev
+$ sudo apt-get install liblua5.3-dev libuv1-dev libyajl-dev libpng-dev libssl-dev
 
+$ # premake5
 $ git clone https://github.com/premake/premake-core.git
 $ cd premake-core/
 $ make -f Bootstrap.mak linux
-
-$ sudo apt-get install lua5.3-dev libuv1-dev libyajl-dev
 
 $ make local-modules
 $ make project
