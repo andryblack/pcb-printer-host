@@ -124,6 +124,48 @@ function Aperture.new_std_R( data , s)
 	return ApertureRectangle.new(p[1]*s,p[2]*s,p[3] and p[3]*s)
 end
 
+
+local ApertureObround = class(Aperture,'gerber.ApertureObround')
+
+function ApertureObround:_init( x, y, hole )
+	self._x = x
+	self._y = y
+	self._hole = hole
+end
+
+function ApertureObround:draw_contour( canvas, contour )
+	error('only flash supported for Obround')
+	return canvas
+end
+function ApertureObround:flash( canvas, x, y )
+	--print('circle flash: ',x,y,self._diameter)
+	if self._x < self._y then
+		local g1 = Geometry.new_circle(x,y+self._y/2-self._x/2,self._x / 2)
+		local g2 = Geometry.new_circle(x,y-self._y/2+self._x/2,self._x / 2)
+		g2:union(g1)
+		--print(g:dump())
+		canvas:union(g2)
+	else
+		local g1 = Geometry.new_circle(x+self._x/2-self._y/2,y,self._y / 2)
+		local g2 = Geometry.new_circle(x-self._x/2+self._y/2,y,self._y / 2)
+		g2:union(g1)
+		--print(g:dump())
+		canvas:union(g2)
+	end
+	return canvas
+end
+
+function Aperture.new_std_O( data , s)
+	local p = parse_params(data)
+	if not p[1] then
+		error('O need X size')
+	end
+	if not p[2] then
+		error('O need Y size')
+	end
+	return ApertureObround.new(p[1]*s,p[2]*s,p[3] and p[3]*s)
+end
+
 local ApertureMacros = class(Aperture,'gerber.ApertureMacros')
 
 ApertureMacros._primitives = {}

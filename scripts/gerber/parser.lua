@@ -40,10 +40,6 @@ function Parser:set_linear(  )
 	
 end
 
-function Parser:set_circular(  )
-	print('WARNING','Circular Interpolation not supported')
-end
-
 function Parser:on_ext_block_begin_end(  )
 	if not self._extended_command then
 		self._extended_command = { line = self._line_number }
@@ -182,12 +178,14 @@ Parser._G[1] = function( self, data )
 	return data
 end
 Parser._G[2] = function( self, data )
-	self:set_circular('cw')
-	return data
+	print('WARNING','Circular Interpolation not supported',self._line_number)
+	--self:set_circular('cw')
+	return ''
 end
 Parser._G[3] = function( self, data )
-	self:set_circular('ccw')
-	return data
+	print('WARNING','Circular Interpolation not supported',self._line_number)
+	--self:set_circular('ccw')
+	return ''
 end
 Parser._G[4]= function( self, data )
 	print('comment:',data)
@@ -202,7 +200,7 @@ Parser._G[37]= function( self, data )
 	end
 	self._region:finish()
 	--print('finish region',self._polarity)
-	
+	self._current_pos = self._region:get_last_pos()
 	if self._canvas then
 		if self._region._polarity == 'D' then
 			--print('union geometry')
@@ -340,6 +338,9 @@ function Parser._EC.IP( self, data )
 	local pol = string.match(data,'^(.+)$')
 	self._image_plarity = pol
 	print('image polarity:',pol)
+end
+function Parser._EC.TA( self, data )
+	print('TA:',data)
 end
 
 function Parser:parse( line )

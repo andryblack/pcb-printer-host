@@ -8,6 +8,10 @@
 
 #include <iostream>
 
+#ifndef IUCLC
+#define IUCLC 0
+#endif
+
 static const char* mt_name = "app.Serial";
 
 Serial::Serial(uv_loop_t* loop,int fd)  : m_need_stop(false) {

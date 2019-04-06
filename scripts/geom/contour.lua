@@ -28,6 +28,17 @@ function Contour:is_closed(  )
 		(self._points[1][2] == self._points[len][2])
 end
 
+function Contour:dump( ... )
+	local len = #self._points
+	print('contour len',len)
+	if self._points[1] then
+		print('1:',self._points[1][1],self._points[1][2])
+	end
+	if self._points[len] then
+		print(len .. ':',self._points[len][1],self._points[len][2])
+	end
+end
+
 
 function Contour:points( )
 	local len = #self._points

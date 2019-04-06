@@ -14,7 +14,11 @@ end
 function Region:flush_contour(  )
 	if self._contour then
 		if not self._contour:is_closed() then
-			error('invalid contour')
+			self._contour:close()
+			if not self._contour:is_closed() then
+				self._contour:dump()
+				error('invalid contour')
+			end
 		end
 		local g = self._contour:build_polygon()
 		if self._geometry then
@@ -38,13 +42,18 @@ function Region:move( x , y )
 	self:flush_contour()
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
 	self._contour = Contour.new()
+	print('Region:move',self._current_pos[1],self._current_pos[2])
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
 end
 
 function Region:draw( x, y )
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
+	print('Region:draw',self._current_pos[1],self._current_pos[2])
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
 end
 
+function Region:get_last_pos(  )
+	return self._current_pos
+end
 
 return Region
