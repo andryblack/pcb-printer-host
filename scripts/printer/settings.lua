@@ -80,6 +80,43 @@ number {
 	page = 'printer'
 }
 
+number {
+	name = 'printer_y_min_speed',
+	descr = 'Y min mm / s',
+	default = 0.1,
+	page = 'printer'
+}
+
+number {
+	name = 'printer_y_max_speed',
+	descr = 'Y max mm / s',
+	default = 1.0,
+	page = 'printer'
+}
+
+number {
+	name = 'printer_y_accel',
+	descr = 'Y acceleration mm / s2',
+	default = 1.0,
+	page = 'printer'
+}
+
+number {
+	name = 'printer_y_deccel',
+	descr = 'Y decceleration mm / s2',
+	default = 1.0,
+	page = 'printer'
+}
+
+number {
+	name = 'printer_y_stop_steps',
+	descr = 'Y stop mm',
+	default = 0.5,
+	page = 'printer'
+}
+
+
+
 boolean {
 	name = 'pcb_negative',
 	descr = 'Default drawing negative',

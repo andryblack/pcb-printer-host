@@ -11,6 +11,11 @@ local llae = require 'llae'
 llae.set_handler()
 local timer_sec = llae.newTimer()
 
+local function funcion_test( a,b,c )
+	
+end
+
+
 local main_coro = coroutine.create(function()
 	local res,err = xpcall(function()
 

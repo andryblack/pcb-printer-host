@@ -242,6 +242,20 @@ function setup_point_offset(e) {
 
 $("#set-pnt1").click(setup_point_offset);
 $("#set-pnt2").click(setup_point_offset);
+
+$("#calibrate").click(function() {
+  fetch('/api/calibrate',{
+        method: 'POST',
+      })
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(checkResultStatus)
+      .then(function(data) {
+      }).catch(function(error) {
+        console.log('request failed', error);
+      });
+});
+
 var download_img = new Image();
 
 function update_camera_image() {

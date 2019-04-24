@@ -23,7 +23,9 @@ function printer:init(  )
 	self._position_y = nil
 
 	self.settings:init()
-	self.settings:load( self._settings_file )
+	if not self.settings:load( self._settings_file ) then
+		print('failed loading settings from ',self._settings_file)
+	end
 	self:update_settings()
 	self.pcb = (require 'printer.pcb').new()
 	local connection_delegate = {printer=self}
@@ -131,6 +133,9 @@ end
 function printer:update_settings(  )
 	self._resolution_x = self.settings.printer_encoder_resolution * 4 / 25.4
 	self._resolution_y = self.settings.printer_y_steps 
+	if self._state == state_idle then
+		self:upload_settings()
+	end
 end
 
 function printer:get_resolution_x( )
@@ -150,10 +155,25 @@ function printer:connect(  )
 	self._protocol:reset()
 	if self._connection:open(self.settings.device,self.settings.baudrate) then
 		self._state = state_idle
-		self._protocol:setup_pid(self.settings.motor_pid_P,
+		self:upload_settings()
+	end
+end
+
+function printer:upload_settings() 
+	self._protocol:setup_pid(self.settings.motor_pid_P,
 			self.settings.motor_pid_I,
 			self.settings.motor_pid_D);
-	end
+	self._protocol:set_param(Protocol.PARAM_STEPPER_MAX_SPEED,
+		math.ceil(self.settings.printer_y_max_speed * self.settings.printer_y_steps))
+	self._protocol:set_param(Protocol.PARAM_STEPPER_START_SPEED,
+		math.ceil(self.settings.printer_y_min_speed * self.settings.printer_y_steps))
+	self._protocol:set_param(Protocol.PARAM_STEPPER_ACCEL,
+		math.ceil(self.settings.printer_y_accel * self.settings.printer_y_steps))
+	self._protocol:set_param(Protocol.PARAM_STEPPER_DECCEL,
+		math.ceil(self.settings.printer_y_deccel  * self.settings.printer_y_steps))
+	self._protocol:set_param(Protocol.PARAM_STEPPER_STOP_STEPS,
+		math.ceil(self.settings.printer_y_stop_steps * self.settings.printer_y_steps))
+	
 end
 
 function printer:on_connection_close(  )
@@ -340,7 +360,7 @@ function printer:calibrate(  )
 	local coro = coroutine.create(function()
 		local r,err = xpcall(function()
 			print('start calibrate prepare print')
-			calibrate:prepare_print(self._protocol)
+			calibrate:prepare_print(self._protocol, self._position_x)
 			print('complete calibrate prepare print')
 			while (not calibrate:print_complete())  do
 				if self._protocol:is_ready() and (self._state == state_printing) then

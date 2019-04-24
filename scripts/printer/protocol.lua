@@ -24,7 +24,8 @@ local commands = {
 	['CMD_SETUP_PID'] = 6,
 	['CMD_PRINT'] = 7,
 	['CMD_MOVE_Y'] = 8,
-	['CMD_SETUP_LASER'] = 9
+	['CMD_SETUP_LASER'] = 9,
+	['CMD_SET_PARAM'] = 10
 }
 Protocol._cmd_names = {}
 for k,v in pairs(commands) do
@@ -65,6 +66,14 @@ Protocol.move_y_t = {
 	{'u16','flags'},
 }
 
+Protocol.CODE_OK = 0
+Protocol.CODE_INVALID_DATA = 1
+Protocol.CODE_OVERFLOW = 2
+
+Protocol.status_resp_t = {
+	{'u16','status'}
+}
+
 Protocol.ping_resp_t = {
 	{'i16','pos_x'},
 	{'i32','pos_y'}
@@ -75,6 +84,17 @@ Protocol.LASER_MODE_PWM = 1
 Protocol.setup_laser_t = {
 	{'u16','mode'},
 	{'u16','param'}
+}
+
+Protocol.PARAM_STEPPER_MAX_SPEED = 0
+Protocol.PARAM_STEPPER_START_SPEED = 1
+Protocol.PARAM_STEPPER_ACCEL = 2
+Protocol.PARAM_STEPPER_DECCEL= 3
+Protocol.PARAM_STEPPER_STOP_STEPS = 4
+
+Protocol.set_param_t = {
+	{'u8','param'},
+	{'u32','value'}
 }
 
 function Protocol:_init( delegate )
@@ -163,10 +183,6 @@ function Protocol:on_response( header, data )
 	if header.cmd == Protocol.CMD_PING then
 		local o,s = struct.read(data,Protocol.ping_resp_t,0)
 		self._delegate:update_pos(o.pos_x,o.pos_y)
-	elseif header.cmd == Protocol.CMD_MOVE_X then
-	elseif header.cmd == Protocol.CMD_MOVE_Y then
-	elseif header.cmd == Protocol.CMD_ZERO_X then
-	elseif header.cmd == Protocol.CMD_STOP then
 	elseif header.cmd == Protocol.CMD_READ_SPEED then
 		local samples_cnt = header.len / Protocol.speed_sample_t_size
 		local o = 0
@@ -175,9 +191,19 @@ function Protocol:on_response( header, data )
 			s,o = struct.read(data,Protocol.speed_sample_t,o)
 			self._delegate:add_speed_sample(s)
 		end
-	elseif header.cmd == Protocol.CMD_SETUP_PID then
-	elseif header.cmd == Protocol.CMD_PRINT then
-	elseif header.cmd == Protocol.CMD_SETUP_LASER then
+	elseif (header.cmd == Protocol.CMD_SET_PARAM) or
+		   (header.cmd == Protocol.CMD_SETUP_LASER) or
+		   (header.cmd == Protocol.CMD_ZERO_X) or 
+		   (header.cmd == Protocol.CMD_ZERO_Y) or 
+		   (header.cmd == Protocol.CMD_PRINT) or
+		   (header.cmd == Protocol.CMD_SETUP_PID) or
+		   (header.cmd == Protocol.CMD_STOP) or
+		   (header.cmd == Protocol.CMD_MOVE_X) or
+		   (header.cmd == Protocol.CMD_MOVE_Y) then
+		local o,s = struct.read(data,Protocol.status_resp_t,0)
+		if o.status ~= Protocol.CODE_OK then
+			print('command failed, staus:',o.status)
+		end
 	else
 		print('unknown response:',header.cmd)
 	end
@@ -272,6 +298,13 @@ function Protocol:setup_laser( mode, param )
 		param = param
 	}):build()
 	self:cmd(self.CMD_SETUP_LASER,data)
+end
+function Protocol:set_param( param, value )
+	local data = struct.new(self.set_param_t,{
+		param = param,
+		value = value
+	}):build()
+	self:cmd(self.CMD_SET_PARAM,data)
 end
 function Protocol:_on_timeout(  )
 	if self._recv_seq then

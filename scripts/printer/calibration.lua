@@ -4,15 +4,12 @@ local Protocol = require 'printer.protocol'
 local calibration = class(nil,'printer.calibration')
 
 local width = 100
-local position_x = 40.0
 local flash_time = 50
 local print_speed = 500.0
 
-function calibration:prepare_print( protocol )
+function calibration:prepare_print( protocol , position_x)
 
-	local res = application.printer:get_resolution_x()
-	
-	self._start_r = math.ceil(position_x * res)
+	self._start_r = math.ceil(position_x)
 	self._start_l = self._start_r + width * 8
 	protocol:move_x(5,application.printer:get_idle_speed_x())
 	llae.sleep(1000)

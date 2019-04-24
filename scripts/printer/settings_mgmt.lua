@@ -88,7 +88,7 @@ function settings:store( file )
 		end
 	end
 	local json_data = json.encode(data)
-	local data_file = io.open(file,'w+')
+	local data_file = assert(io.open(file,'w+'))
 	data_file:write(json_data)
 	data_file:close()
 end
