@@ -65,6 +65,7 @@ function PCB:get_layer( name )
 			return v
 		end
 	end
+	return self['_' .. name .. '_layer']
 end
 
 function PCB:add_drill_layer( points, name )
@@ -323,20 +324,36 @@ function PCB:build_print(  )
 	local points_g = svg:child{'g',
 		id="points",visibility='hidden'}
 
+
+	local function add_points_layer( layer ) 
+		for i,p in ipairs(self:flip_points(layer.points)) do
+			local x = p.x
+			local y = p.y
+			points_g:child{'circle',id='pnt-'..i,cx=x,cy=y,r=1.5,class='point-select',
+				['data-idx']=i,
+				['data-layer']=layer.name}
+		end
+	end
 	for _,layer in ipairs(self._layers) do
 		if layer.invisible then
 		else
 			if layer.type == 'drill' then
-				for i,p in ipairs(self:flip_points(layer.points)) do
-					local x = p.x
-					local y = p.y
-					points_g:child{'circle',id='pnt-'..i,cx=x,cy=y,r=1.5,class='point-select',
-						['data-idx']=i,
-						['data-layer']=layer.name}
-				end
+				add_points_layer( layer )
 			end
 		end
 	end
+
+	self._bounds_layer = {
+		name = 'bounds',
+		type = 'select-points',
+		points = {
+			{ x = bounds:x(), y = bounds:y() },
+			{ x = bounds:x() + bounds:width(), y = bounds:y() },
+			{ x = bounds:x(), y = bounds:y() + bounds:height() },
+			{ x = bounds:x() + bounds:width(), y = bounds:y() + bounds:height() }
+		}
+	}
+	add_points_layer( self._bounds_layer )
 
 	self._polygons = polygons
 	self._bounds = bounds
@@ -544,7 +561,7 @@ function PCB:select_pnt( data )
 	if not layer then
 		error('not found layer ' .. tostring(data.layer))
 	end
-	if layer.type ~= 'drill' then
+	if layer.type ~= 'drill' and layer.type ~= 'select-points' then
 		error('invalid layer ' .. tostring(data.layer))
 	end
 	local pnt = layer.points[tonumber(data.idx)]
