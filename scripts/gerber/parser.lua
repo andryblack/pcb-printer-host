@@ -199,24 +199,24 @@ Parser._G[37]= function( self, data )
 		error('region not started')
 	end
 	self._region:finish()
-	--print('finish region',self._polarity)
+	print('finish region',self._polarity)
 	self._current_pos = self._region:get_last_pos()
 	if self._canvas then
 		if self._region._polarity == 'D' then
-			--print('union geometry')
+			print('union geometry')
 			self._canvas:union(self._region._geometry)
 		else
-			--print('difference geometry')
+			print('difference geometry')
 			self._canvas:difference(self._region._geometry)
 		end
 	else
 		if self._region._polarity ~= 'D' then
 			error('first region must be draw')
 		end
-		--print('assign first geometry',self._region._geometry:dump())
+		print('assign first geometry',self._region._geometry:dump())
 		self._canvas = self._region._geometry
 	end
-	--self._canvas:flush()
+	self._canvas:flush()
 	self._region = nil
 end
 Parser._G[70]= function ( self , data )

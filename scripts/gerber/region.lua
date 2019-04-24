@@ -42,13 +42,13 @@ function Region:move( x , y )
 	self:flush_contour()
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
 	self._contour = Contour.new()
-	print('Region:move',self._current_pos[1],self._current_pos[2])
+	--print('Region:move',self._current_pos[1],self._current_pos[2])
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
 end
 
 function Region:draw( x, y )
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
-	print('Region:draw',self._current_pos[1],self._current_pos[2])
+	--print('Region:draw',self._current_pos[1],self._current_pos[2])
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
 end
 
