@@ -246,6 +246,7 @@ function PCB:build_print(  )
 	
 
 	local bounds = Bounds.new()
+
 	for i,layer in ipairs(self._layers) do
 		bounds:intersect(self:flip_bounds(layer.bounds))
 	end
@@ -325,8 +326,8 @@ function PCB:build_print(  )
 		id="points",visibility='hidden'}
 
 
-	local function add_points_layer( layer ) 
-		for i,p in ipairs(self:flip_points(layer.points)) do
+	local function add_points_layer( layer , points ) 
+		for i,p in ipairs(points) do
 			local x = p.x
 			local y = p.y
 			points_g:child{'circle',id='pnt-'..i,cx=x,cy=y,r=1.5,class='point-select',
@@ -338,7 +339,7 @@ function PCB:build_print(  )
 		if layer.invisible then
 		else
 			if layer.type == 'drill' then
-				add_points_layer( layer )
+				add_points_layer( layer , self:flip_points(layer.points) )
 			end
 		end
 	end
@@ -353,7 +354,7 @@ function PCB:build_print(  )
 			{ x = bounds:x() + bounds:width(), y = bounds:y() + bounds:height() }
 		}
 	}
-	add_points_layer( self._bounds_layer )
+	add_points_layer( self._bounds_layer , self._bounds_layer.points )
 
 	self._polygons = polygons
 	self._bounds = bounds
