@@ -202,6 +202,7 @@ Parser._G[37]= function( self, data )
 	--print('finish region',self._polarity)
 	self._current_pos = self._region:get_last_pos()
 	if self._canvas then
+		self._canvas:flush()
 		if self._region._polarity == 'D' then
 			--print('union geometry')
 			self._canvas:union(self._region._geometry)
