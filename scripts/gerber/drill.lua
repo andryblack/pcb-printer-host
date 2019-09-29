@@ -36,6 +36,13 @@ function Dril:on_block( block )
 	if block == '' then
 		return
 	end
+
+	if self._header then
+		self:process_header(block)
+		return
+	end
+
+
 	local letter,code = string.match(block,'^(%u)(%d+)$')
 	if letter then
 		if letter == 'M' then
@@ -44,7 +51,7 @@ function Dril:on_block( block )
 			self:process_G_code(tonumber(code))
 		elseif letter == 'T' then
 			self._active_tool = self._tools[code]
-			if not self._active_tool then
+			if not self._active_tool and code~='0' then
 				error('unknown tool ' .. code)
 			end
 		else
@@ -52,15 +59,19 @@ function Dril:on_block( block )
 		end
 		return
 	end
-	if self._header then
-		self:process_header(block)
-		return
-	end
-
+	
 	local x,y = string.match(block,'^X([%+%-]?%d+)Y([%+%-]?%d+)$')
 	if x then
 		x = math.tointeger(x) * self._scale
 		y = math.tointeger(y) * self._scale
+		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
+		return
+	end
+
+	local x,y = string.match(block,'^X([%+%-]?[%d%.]+)Y([%+%-]?[%d%.]+)$')
+	if x then
+		x = tonumber(x) * self._scale
+		y = tonumber(y) * self._scale
 		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
 		return
 	end
@@ -120,6 +131,15 @@ function Dril:process_header( block )
 				print('set format',b)
 				return
 			end
+			error('unknown header command ' .. a)
+		end
+		a = string.match(block,'^(%u+)$')
+		if a then
+			if a == 'INCH' then
+				self:set_inches()
+				return
+			end
+			error('unknown header command ' .. a)
 		end
 		local n,c,d = string.match(block,'^T(%d+)(%u)(.+)$')
 		if n then

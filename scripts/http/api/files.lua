@@ -12,6 +12,7 @@ local icons_map = {
     GTS = 'cpu',
     DRL = 'crosshair',
     xln = 'crosshair',
+    drl = 'crosshair',
     GTO = 'lock',
     GKO = 'maximize'
 }
@@ -19,6 +20,7 @@ local icons_map = {
 local actions_map = {
     gcode = {icon='play',action='open_gcode'},
     gbr = {icon='edit',action='open_gerber'},
+    drl = {icon='edit',action='open_drill'},
     xln = {icon='edit',action='open_drill'},
     GTL = {icon='edit',action='open_gerber'},
     GBL = {icon='edit',action='open_gerber'},

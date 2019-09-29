@@ -180,6 +180,24 @@ ApertureMacros._primitives[1] = function(self,data)
 	dia = tonumber(dia)
 	--print('circle',x,y,dia)
 	if not self._canvas then
+		self._canvas = Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2, num, angle)
+	else
+		self._canvas:union( Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2, num, angle ) )
+	end
+end
+
+ApertureMacros._primitives[5] = function(self,data) 
+	local exp,num,x,y,dia,angle = string.match(data,'^([01]),([%d.]+),([%d.-]+),([%d.-]+),([%d.-]+),([%d.-]+)')
+	if not exp then
+		error('invalid polygonn data ' .. data)
+	end
+	x = tonumber(x)
+	y = tonumber(y)
+	dia = tonumber(dia)
+	num = tonumber( num )
+	angle = tonumber( angle )
+	--print('circle',x,y,dia)
+	if not self._canvas then
 		self._canvas = Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2)
 	else
 		self._canvas:union( Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2) )
