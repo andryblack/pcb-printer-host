@@ -46,8 +46,8 @@
 
 <div id = "alert_placeholder"></div>
 
-<div class="row">
-  <div >
+<div class="row" >
+  <div class="col">
     <div class="pcb-view-cont" style="width: 640px; height: 480px; border:1px solid black;">
       <div id="svg-viewport" style="width: 100%; height: 100%" >
         <img id="video-display" class="viewport-video" src="{*settings.camera_url*}" />
@@ -63,75 +63,97 @@
     </div>
   </div>
   
-  <div class="form ml-2" >
-    <div class="form-row ">
-      <div class="form-group mb-0"> 
-          <button id="printer-zero-x" class="btn btn-outline-danger mr-2">
-            <span data-feather="x-circle"></span>Zero X</button>
-      </div>
-      <div class="form-group mb-0"> 
-        <button id="printer-zero-y" class="btn btn-outline-danger mr-2">
-          <span data-feather="x-circle"></span>Zero Y</button>
-      </div>
-      <div class="form-group mb-0"> 
-        <button id="calibrate" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
-    disabled="true">
-            <span data-feather="compass"></span>
-        </button> 
-      </div>
-    </div>
-    <div class="form-row">
-      <button id="move-up" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
-    disabled="true">
-            <span data-feather="arrow-up-circle"></span>
-      </button> 
-      <button id="move-left" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
-        disabled="true">
-            <span data-feather="arrow-left-circle"></span>
-      </button> 
-      <button id="move-right" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
-        disabled="true">
-            <span data-feather="arrow-right-circle"></span>
-      </button> 
-      <button id="move-down" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" 
-        disabled="true">
-            <span data-feather="arrow-down-circle"></span>
-      </button> 
-      <div class="dropdown mt-1 mr-4">
-          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdown-select-step-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            1.0
-          </button>
-          <div class="dropdown-menu" aria-labelledby="dropdown-select-step-button" id="dropdown-select-step-items">
-            <a class="dropdown-item" href="#">0.1</a>
-            <a class="dropdown-item" href="#">1.0</a>
-            <a class="dropdown-item" href="#">10.0</a>
-            <a class="dropdown-item" href="#">100.0</a>
+  <div class="col-sm-4 ml-0 no-gutters ml-0"  >
+    <form class="col no-gutters ml-0" >
+        <div class="row no-gutters ml-0" >
+          <div class="col m-0" > 
+              <button id="printer-zero-x" class="btn btn-outline-danger">
+                <span data-feather="x-circle"></span>Zero X</button>
           </div>
-      </div>
-    </div>
-    <div class="form-row">
-{% local p1 = printer.pcb:get_pnt('pnt1') 
-  if p1 then
-    %} 
-      <div class="form-group mt-1 mb-0"> 
-          <button id="set-pnt1" class="btn btn-outline-info mr-2" data-pnt="pnt1">
-            <span data-feather="crosshair"></span>Set P1</button>
-      </div>
-   {%
-  end
-  local p2 = printer.pcb:get_pnt('pnt2') 
-  if p2 then
-    %} 
-       <div class="form-group mt-1 mb-0"> 
-          <button id="set-pnt2" class="btn btn-outline-info mr-2" data-pnt="pnt2">
-            <span data-feather="crosshair"></span>Set P2</button>
-      </div>
-    {%
-  end
-%}
-    </div>
-  </div>
-</div>
+          <div class="col m-0 ml-2" > 
+            <button id="printer-zero-y" class="btn btn-outline-danger">
+              <span data-feather="x-circle"></span>Zero Y</button>
+          </div>
+        </div>
+        <div class="row no-gutters m-0 mt-2">
+          <div class="col-sm-4 m-0"> 
+            <input type="number" class="form-control" id="calibrate-flash-time" value="{* printer.pcb:get_config().flash_time *}" />
+          </div>
+          <div class="col-sm-4 ml-1"> 
+            <input type="number" class="form-control" id="calibrate-speed" value="{* printer.pcb:get_config().speed *}" />
+          </div>
+          <div class="col-sm-2 ml-1"> 
+            <button id="calibrate" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
+        disabled="true">
+                <span data-feather="compass"></span>
+            </button> 
+          </div>
+        </div>
+        <div class="row no-gutters  m-0 mt-2">
+          <div class="col-sm-4">
+            <div class="dropdown no-gutters  m-0">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdown-select-step-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  1.0
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdown-select-step-button" id="dropdown-select-step-items">
+                  <a class="dropdown-item" href="#">0.1</a>
+                  <a class="dropdown-item" href="#">1.0</a>
+                  <a class="dropdown-item" href="#">10.0</a>
+                  <a class="dropdown-item" href="#">100.0</a>
+                </div>
+            </div>
+          </div>
+        </div>
+        <div class="row no-gutters m-0 mt-2" >
+          <div class="col-sm-2 no-gutters m-0">
+            <button id="move-up" class="btn btn-outline-secondary  enabled-on-printer-state-idle" 
+          disabled="true">
+                  <span data-feather="arrow-up-circle"></span>
+            </button> 
+          </div>
+          <div class="col-sm-2 no-gutters m-0 ml-1 ">
+            <button id="move-left" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
+              disabled="true">
+                  <span data-feather="arrow-left-circle"></span>
+            </button> 
+          </div>
+          <div class="col-sm-2 no-gutters m-0 ml-1 ">
+            <button id="move-right" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
+              disabled="true">
+                  <span data-feather="arrow-right-circle"></span>
+            </button> 
+          </div>
+          <div class="col-sm-2 no-gutters m-0 ml-1 ">
+            <button id="move-down" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
+              disabled="true">
+                  <span data-feather="arrow-down-circle"></span>
+            </button> 
+          </div>
+        </div>
+        <div class="row">
+    {% local p1 = printer.pcb:get_pnt('pnt1') 
+      if p1 then
+        %} 
+          <div class="form-group mt-1 mb-0"> 
+              <button id="set-pnt1" class="btn btn-outline-info mr-2" data-pnt="pnt1">
+                <span data-feather="crosshair"></span>Set P1</button>
+          </div>
+       {%
+      end
+      local p2 = printer.pcb:get_pnt('pnt2') 
+      if p2 then
+        %} 
+           <div class="form-group mt-1 mb-0"> 
+              <button id="set-pnt2" class="btn btn-outline-info mr-2" data-pnt="pnt2">
+                <span data-feather="crosshair"></span>Set P2</button>
+          </div>
+        {%
+      end
+    %}
+        </div>
+  </form> <!-- form -->
+</div><!-- col -->
+<div class="col" />
 
 <div class="printer-control">
   
@@ -246,6 +268,14 @@ $("#set-pnt2").click(setup_point_offset);
 $("#calibrate").click(function() {
   fetch('/api/calibrate',{
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body:JSON.stringify({
+          flash: parseFloat($("#calibrate-flash-time").val()),
+          speed: parseFloat($("#calibrate-speed").val()),
+        })
       })
       .then(checkStatus)
       .then(parseJSON)

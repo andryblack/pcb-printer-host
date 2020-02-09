@@ -351,12 +351,12 @@ function printer:preview(  )
 	assert(coroutine.resume(coro))
 end
 
-function printer:calibrate(  )
+function printer:calibrate( data  )
 	local state = self:start_state(state_printing)
 	local sself = self
 	self._progress = 0
 	local calibrate = (require 'printer.calibration').new()
-
+	calibrate:setup( data )
 	local coro = coroutine.create(function()
 		local r,err = xpcall(function()
 			print('start calibrate prepare print')

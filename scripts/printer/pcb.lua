@@ -28,8 +28,8 @@ function PCB:reset(  )
 		drill_kern_r = application.printer.settings.pcb_drill_kern_r,
 		drill_kern_or = application.printer.settings.pcb_drill_kern_or,
 		y_resolution = 180*4/25.4,
-		speed = 500.0,
-		flash_time = 50.0,
+		speed = application.printer.settings.print_speed or 500.0,
+		flash_time = application.printer.settings.flash_time or 50.0,
 		flip_x = false,
 		flip_y = false
 	}

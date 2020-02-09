@@ -115,6 +115,20 @@ number {
 	page = 'printer'
 }
 
+number {
+	name = 'print_speed',
+	descr = 'X speed mm / s',
+	default = 500,
+	page = 'printer'
+}
+
+number {
+	name = 'flash_time',
+	descr = 'Laser flash time ms',
+	default = 50,
+	page = 'printer'
+}
+
 
 
 boolean {

@@ -42,8 +42,8 @@ function printer:post_stop( )
 	return self:get_state()
 end
 
-function printer:post_calibrate( )
-	application.printer:calibrate()
+function printer:post_calibrate( data )
+	application.printer:calibrate(data)
 	return self:get_state()
 end
 

@@ -4,19 +4,26 @@ local Protocol = require 'printer.protocol'
 local calibration = class(nil,'printer.calibration')
 
 local width = 100
-local flash_time = 50
-local print_speed = 500.0
+
+function calibration:_init(  )
+	self:setup({})
+end
+
+function calibration:setup( data )
+	self._flash_time = data.flash or application.printer.settings.flash_time
+	self._print_speed = data.speed or application.printer.settings.print_speed
+end
 
 function calibration:prepare_print( protocol , position_x)
 
 	self._start_r = math.ceil(position_x)
 	self._start_l = self._start_r + width * 8
-	protocol:move_x(5,application.printer:get_idle_speed_x())
+	protocol:move_x(self._start_r-5,application.printer:get_idle_speed_x())
 	llae.sleep(1000)
 	self._dir = 'r'
 	self._pos_y = 0
 	self._prev_y = 0
-	protocol:setup_laser(Protocol.LASER_MODE_PRINT,flash_time)
+	protocol:setup_laser(Protocol.LASER_MODE_PRINT,self._flash_time)
 	self._complete = false
 	self._progress = 0
 	self._mode = 'p0'
@@ -25,12 +32,14 @@ function calibration:prepare_print( protocol , position_x)
 	
 end
 
+
+
 function calibration:print_complete(  )
 	return self._complete
 end
 
 function calibration:process_print( protocol )
-	local speed = application.printer:calc_speed(print_speed)
+	local speed = application.printer:calc_speed(self._print_speed)
 	local start = self._start_r
 	local pl = ''
 	if self._mode == 'p0' then
