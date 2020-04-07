@@ -61,7 +61,7 @@ solution 'pcb-printer'
 			'src/camera/*.h',
 			'src/camera/*.cpp'
 		}
-		configuration {'macosx'}
+		if os.istarget('macosx') then
 			
 			files {
 				path.join('src/camera/osx','*.mm'),
@@ -75,15 +75,15 @@ solution 'pcb-printer'
 				'AVFoundation.framework',
 				'Foundation.framework'
 			}
-		configuration {'linux'}
-			includedirs{'/opt/vc/include'}
+		elseif os.istarget('linux') then
+			includedirs{'$(STAGING_DIR)/opt/vc/include'}
 			files {
 				path.join('src/camera/linux','*.cpp'),
 				path.join('src/camera/linux','*.h')
 			}
-			libdirs { '/opt/vc/lib' }
+			libdirs { '$(STAGING_DIR)/opt/vc/lib' }
 			links {
 				'bcm_host','vcos','openmaxil'
 			}
-		configuration{}
+		end
 	
