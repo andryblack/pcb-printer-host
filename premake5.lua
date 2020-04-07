@@ -38,7 +38,7 @@ solution 'pcb-printer'
 			'src',
 			'extlib/llae/src'
 		}
-		llae.link()
+		llae.exe()
 		buildoptions{ 
 			llae.pkgconfig('libpng','cflags'),
 			llae.pkgconfig('lua-5.3','cflags'),
