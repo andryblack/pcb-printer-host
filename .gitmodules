@@ -1,6 +1,6 @@
 [submodule "extlib/llae"]
 	path = extlib/llae
-	url = git@github.com:andryblack/llae.git
+	url = https://github.com/andryblack/llae.git
 [submodule "extlib/lua-resty-template"]
 	path = extlib/lua-resty-template
 	url = https://github.com/bungle/lua-resty-template.git
