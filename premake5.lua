@@ -2,6 +2,17 @@
 local llae = require 'extlib/llae/premake/llae'
 llae.root = 'extlib/llae'
 
+newoption {
+	trigger = "board",
+	value = "string",
+	description = "host board",
+	default = 'generic',
+	allowed = { 
+		{'rpi','Raspberry-pi'},
+		{'generic','Any board'},
+	}
+}
+
 solution 'pcb-printer'
 	configurations { 'debug', 'release' }
 	language 'c++'
@@ -76,14 +87,19 @@ solution 'pcb-printer'
 				'Foundation.framework'
 			}
 		elseif os.istarget('linux') then
-			includedirs{'$(STAGING_DIR)/opt/vc/include'}
 			files {
 				path.join('src/camera/linux','*.cpp'),
 				path.join('src/camera/linux','*.h')
 			}
-			libdirs { '$(STAGING_DIR)/opt/vc/lib' }
-			links {
-				'bcm_host','vcos','openmaxil'
-			}
+			if _OPTIONS["board"] == "rpi" then
+
+				defines { 'USE_VC_HW_ENCODING' }
+				includedirs{'$(STAGING_DIR)/opt/vc/include'}
+				libdirs { '$(STAGING_DIR)/opt/vc/lib' }
+				links {
+					'bcm_host','vcos','openmaxil'
+				}
+				
+			end
 		end
 	

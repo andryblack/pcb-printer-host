@@ -5,6 +5,7 @@ DEPMODULES= \
 	llae
 
 LOCALTREE=local
+BOARD?=generic
 
 .PHONY: all src-distr
 
@@ -14,7 +15,7 @@ files:
 		mkdir -p local/var/files
 
 project: premake5.lua 
-		premake5 gmake
+		premake5 gmake --board=$(BOARD)
 
 build: project
 		make -C build verbose=1

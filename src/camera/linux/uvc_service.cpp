@@ -11,7 +11,20 @@
 #include <linux/videodev2.h>
 
 #include "luabind.h"
+#if defined(USE_VC_HW_ENCODING) 
 #include "rpi_jpeg_encoder.h"
+#define jpeg_encoder_finish rpi_jpeg_encoder_finish
+#define jpeg_encoder_init rpi_jpeg_encoder_init
+#define jpeg_encode rpi_jpeg_encode
+#else
+static void jpeg_encoder_finish() {}
+static size_t jpeg_encode(const void* src_data,void* dst_data) {
+    return 0;
+}
+static bool jpeg_encoder_init(size_t img_width, size_t img_height) {
+    return false;
+}
+#endif
 
 #define HEADERFRAME1 0xaf
 
@@ -37,7 +50,7 @@ uvc_service::~uvc_service() {
 void uvc_service::close() {
 
     if (m_need_encode) {
-        rpi_jpeg_encoder_finish();
+        jpeg_encoder_finish();
     }
 
 	m_need_encode = false;
@@ -116,8 +129,12 @@ bool uvc_service::open(lua_State* L) {
     printf("using: %dx%d\n",width,height);
     if (m_fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_MJPEG) {
         if (m_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
-            rpi_jpeg_encoder_init(width,height);
-            m_need_encode = true;
+            if (jpeg_encoder_init(width,height)) {
+                m_need_encode = true;
+            } else {
+                printf("ERROR failed init jpeg encoder\n");
+                return false;
+            }
         } else {
         	printf("ERROR usupported pixel format: %d (%s)\n",m_fmt.fmt.pix.pixelformat,vf_tostr(m_fmt.fmt.pix.pixelformat));
             return false;
@@ -219,7 +236,7 @@ void uvc_service::process_frame() {
     if(m_buf.bytesused > HEADERFRAME1 && m_need_frame) { 
     	
         if (m_need_encode) {
-            size_t frame_size = rpi_jpeg_encode(m_buffers_mem[m_buf.index],m_encode_buffer);
+            size_t frame_size = jpeg_encode(m_buffers_mem[m_buf.index],m_encode_buffer);
             if (frame_size) {
                 put_frame(m_encode_buffer,frame_size,m_buf.timestamp);
             } 

@@ -1,5 +1,7 @@
 #include "rpi_jpeg_encoder.h"
 
+#if defined(USE_VC_HW_ENCODING)
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -17,7 +19,7 @@
 #define JPEG_THUMBNAIL_ENABLE OMX_FALSE
 #define JPEG_PREVIEW OMX_FALSE
 
-
+  
 #define DUMP_CASE(x) case x: return #x;
 
 const char* dump_OMX_STATETYPE (OMX_STATETYPE state){
@@ -692,3 +694,5 @@ OMX_ERRORTYPE Component::empty_buffer_done (
   
   return OMX_ErrorNone;
 }
+
+#endif /*USE_VC_HW_ENCODING*/
