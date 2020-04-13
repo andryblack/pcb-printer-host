@@ -52,6 +52,9 @@ host
 $ cd ~
 $ git clone https://github.com/andryblack/pcb-printer-host.git
 $ cd pcb-printer-host
+$ # download modules
+$ git submodule init
+$ git submodule update
 $ make local-modules
 $ make project 
 $ make 
