@@ -39,15 +39,32 @@ $ sudo apt-get install build-essential git
 $ sudo apt-get install liblua5.3-dev libuv1-dev libyajl-dev libpng-dev libssl-dev
 
 $ # premake5
+$ cd ~
 $ git clone https://github.com/premake/premake-core.git
 $ cd premake-core/
 $ make -f Bootstrap.mak linux
-
+$ # install at $HOME/bin
+$ mkdir -p ~/bin
+$ cp bin/release/premake5 ~/bin/
+```
+host
+```bash
+$ cd ~
+$ git clone https://github.com/andryblack/pcb-printer-host.git
+$ cd pcb-printer-host
 $ make local-modules
-$ make project
-$ make
-
+$ make project 
+$ make 
+$ # run local instance
 $ make run
 ```
 
+open http://localhost:8080 at browser
+
+
+Raspberry Pi:
+use BOARD=rpi at each make command
+```bash
+# free uart
 echo "dtoverlay=pi3-disable-bt" >> /boot/config.txt
+```
