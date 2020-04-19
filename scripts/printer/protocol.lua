@@ -21,11 +21,11 @@ local commands = {
 	['CMD_READ_SPEED'] = 3,
 	['CMD_ZERO_X'] = 4,
 	['CMD_ZERO_Y'] = 5,
-	['CMD_SETUP_PID'] = 6,
+	['CMD_SETUP_MOTOR'] = 6,
 	['CMD_PRINT'] = 7,
 	['CMD_MOVE_Y'] = 8,
 	['CMD_SETUP_LASER'] = 9,
-	['CMD_SET_PARAM'] = 10
+	['CMD_SET_STEPPER_PARAM'] = 10
 }
 Protocol._cmd_names = {}
 for k,v in pairs(commands) do
@@ -47,10 +47,12 @@ Protocol.speed_sample_t = {
 }
 Protocol.speed_sample_t_size = struct.sizeof(Protocol.speed_sample_t)
 
-Protocol.setup_pid_t = {
+Protocol.setup_motor_t = {
 	{'f32','P'},
 	{'f32','I'},
-	{'f32','D'}
+	{'f32','D'},
+	{'u32','pwm_min'},
+	{'u32','pwm_max'}
 }
 
 Protocol.print_t = {
@@ -191,12 +193,12 @@ function Protocol:on_response( header, data )
 			s,o = struct.read(data,Protocol.speed_sample_t,o)
 			self._delegate:add_speed_sample(s)
 		end
-	elseif (header.cmd == Protocol.CMD_SET_PARAM) or
+	elseif (header.cmd == Protocol.CMD_SET_STEPPER_PARAM) or
 		   (header.cmd == Protocol.CMD_SETUP_LASER) or
 		   (header.cmd == Protocol.CMD_ZERO_X) or 
 		   (header.cmd == Protocol.CMD_ZERO_Y) or 
 		   (header.cmd == Protocol.CMD_PRINT) or
-		   (header.cmd == Protocol.CMD_SETUP_PID) or
+		   (header.cmd == Protocol.CMD_SETUP_MOTOR) or
 		   (header.cmd == Protocol.CMD_STOP) or
 		   (header.cmd == Protocol.CMD_MOVE_X) or
 		   (header.cmd == Protocol.CMD_MOVE_Y) then
@@ -284,13 +286,15 @@ function Protocol:print( start, speed, move_y, data )
 	}):build()
 	self:cmd(self.CMD_PRINT,data_hdr .. data)
 end
-function Protocol:setup_pid( P,I,D )
-	local data = struct.new(self.setup_pid_t,{
+function Protocol:setup_motor( P,I,D, pwm_min, pwm_max )
+	local data = struct.new(self.setup_motor_t,{
 		P = P,
 		I = I, 
-		D = D
+		D = D,
+		pwm_min = pwm_min,
+		pwm_max = pwm_max
 	}):build()
-	self:cmd(self.CMD_SETUP_PID,data)
+	self:cmd(self.CMD_SETUP_MOTOR,data)
 end
 function Protocol:setup_laser( mode, param )
 	local data = struct.new(self.setup_laser_t,{
@@ -304,7 +308,7 @@ function Protocol:set_param( param, value )
 		param = param,
 		value = value
 	}):build()
-	self:cmd(self.CMD_SET_PARAM,data)
+	self:cmd(self.CMD_SET_STEPPER_PARAM,data)
 end
 function Protocol:_on_timeout(  )
 	if self._recv_seq then

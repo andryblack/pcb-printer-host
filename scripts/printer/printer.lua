@@ -103,16 +103,20 @@ printer._actions['zero-y']=function(self,data)
 	self._protocol:zero_y();
 end
 printer._actions['setup-pid']=function(self,data) 
-	self._protocol:setup_pid(data.P,data.I,data.D);
+	self._protocol:setup_motor(data.P,data.I,data.D,
+		self.settings.motor_pwm_min,
+		self.settings.motor_pwm_max);
 end
 
 printer._actions['move-x']=function(self,data) 
 	local target = self._position_x + data.x * self._resolution_x
-	self._protocol:move_x(math.ceil(target),self:get_idle_speed_x(),Protocol.FLAG_WAIT_MOVE)
+	self._position_x = math.ceil(target)
+	self._protocol:move_x(self._position_x,self:get_idle_speed_x(),Protocol.FLAG_WAIT_MOVE)
 end
 printer._actions['move-y']=function(self,data) 
 	local target = self._position_y + data.y * self._resolution_y
-	self._protocol:move_y(math.ceil(target))
+	self._position_y = math.ceil(target)
+	self._protocol:move_y(self._position_y)
 end
 printer._actions['setup-laser-pwm']=function(self,data) 
 	self._protocol:setup_laser(Protocol.LASER_MODE_PWM,math.ceil(data.v))
@@ -160,9 +164,11 @@ function printer:connect(  )
 end
 
 function printer:upload_settings() 
-	self._protocol:setup_pid(self.settings.motor_pid_P,
+	self._protocol:setup_motor(self.settings.motor_pid_P,
 			self.settings.motor_pid_I,
-			self.settings.motor_pid_D);
+			self.settings.motor_pid_D,
+			self.settings.motor_pwm_min,
+			self.settings.motor_pwm_max);
 	self._protocol:set_param(Protocol.PARAM_STEPPER_MAX_SPEED,
 		math.ceil(self.settings.printer_y_max_speed * self.settings.printer_y_steps))
 	self._protocol:set_param(Protocol.PARAM_STEPPER_START_SPEED,

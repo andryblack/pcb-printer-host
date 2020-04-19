@@ -12,12 +12,22 @@ end
 local metatables = {}
 
 metatables.string = { set_value = set_value_default }
-metatables.number = { set_value = set_value_default }
+
+metatables.number = {}
+function metatables.number:set_value( val )
+	self.value = tonumber(val)
+end
+
+metatables.number.parse = tonumber
 
 metatables.integer = { }
 
 function metatables.integer:set_value( val )
 	self.value = math.floor(tonumber(val))
+end
+
+function metatables.integer.parse( val )
+	return math.floor(tonumber(val))
 end
 
 metatables.boolean = { }
@@ -74,7 +84,7 @@ function settings:load( file )
 	local config = assert(json.decode(data))
 	for _,v in ipairs(self._data) do
 		if config[v.name] then
-			v.value = config[v.name]
+			v.value = (v.parse and v.parse(config[v.name])) or config[v.name]
 		end 
 	end
 	return true

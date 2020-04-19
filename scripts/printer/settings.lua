@@ -59,6 +59,20 @@ number {
 	page = 'printer'
 }
 
+integer {
+	name = 'motor_pwm_min',
+	descr = 'Motor min PWM value(0-1024)',
+	default = 100,
+	page = 'printer'
+}
+
+integer {
+	name = 'motor_pwm_max',
+	descr = 'Motor max PWM value(0-1024)',
+	default = 1000,
+	page = 'printer'
+}
+
 number {
 	name = 'motor_min_speed',
 	descr = 'Min X motor speed (mm/s)',
