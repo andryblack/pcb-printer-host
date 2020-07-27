@@ -12,7 +12,7 @@ function Region:_init( parent , current_pos , polarity )
 end
 
 function Region:flush_contour(  )
-	if self._contour then
+	if self._contour and self._contour:num_points()>1 then
 		if not self._contour:is_closed() then
 			self._contour:close()
 			if not self._contour:is_closed() then
@@ -26,9 +26,8 @@ function Region:flush_contour(  )
 		else
 			self._geometry = g
 		end
-
-		self._contour = nil
 	end
+	self._contour = nil
 end
 
 function Region:finish(  )
