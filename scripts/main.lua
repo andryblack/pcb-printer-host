@@ -2,6 +2,12 @@ print(args[0])
 
 local dir = string.match(args[0],'(.*)/.*')
 
+if not math.pow then
+	math.pow = function(base,p)
+		return base ^ p
+	end
+end
+
 package.path = dir .. '/?.lua'
 
 package.root = dir
