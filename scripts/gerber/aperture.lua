@@ -33,14 +33,14 @@ end
 
 function ApertureCircle:draw_contour( canvas, contour )
 	local g = contour:build_buffer(self._diameter)
-	canvas:union(g)
+	canvas:union(g,true)
 	return canvas
 end
 function ApertureCircle:flash( canvas, x, y )
 	--print('circle flash: ',x,y,self._diameter)
 	local g = Geometry.new_circle(x,y,self._diameter / 2)
 	--print(g:dump())
-	canvas:union(g)
+	canvas:union(g,true)
 	return canvas
 end
 
@@ -70,7 +70,7 @@ function AperturePolygon:flash( canvas, x , y )
 	--print('circle flash: ',x,y,self._diameter)
 	local g = Geometry.new_circle(x,y,self._diameter / 2,self._vertices,self._rot)
 	--print(g:dump())
-	canvas:union(g)
+	canvas:union(g,true)
 	return canvas
 end
 
@@ -108,7 +108,7 @@ function ApertureRectangle:flash( canvas, x, y )
 		{x-w/2,y+h/2},
 		
 	}
-	canvas:union(g)
+	canvas:union(g,true)
 	return canvas
 end
 
@@ -142,15 +142,15 @@ function ApertureObround:flash( canvas, x, y )
 	if self._x < self._y then
 		local g1 = Geometry.new_circle(x,y+self._y/2-self._x/2,self._x / 2)
 		local g2 = Geometry.new_circle(x,y-self._y/2+self._x/2,self._x / 2)
-		g2:union(g1)
+		g2:union(g1,true)
 		--print(g:dump())
-		canvas:union(g2)
+		canvas:union(g2,true)
 	else
 		local g1 = Geometry.new_circle(x+self._x/2-self._y/2,y,self._y / 2)
 		local g2 = Geometry.new_circle(x-self._x/2+self._y/2,y,self._y / 2)
-		g2:union(g1)
+		g2:union(g1,true)
 		--print(g:dump())
-		canvas:union(g2)
+		canvas:union(g2,true)
 	end
 	return canvas
 end
@@ -182,25 +182,25 @@ ApertureMacros._primitives[1] = function(self,data)
 	if not self._canvas then
 		self._canvas = Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2, num, angle)
 	else
-		self._canvas:union( Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2, num, angle ) )
+		self._canvas:union( Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2, num, angle ), true )
 	end
 end
 
 ApertureMacros._primitives[5] = function(self,data) 
-	local exp,num,x,y,dia,angle = string.match(data,'^([01]),([%d.]+),([%d.-]+),([%d.-]+),([%d.-]+),([%d.-]+)')
+	local exp,num,x,y,dia,angle = string.match(data,'^([01]),([%d.]+),([%d.-]+),([%d.-]+),([%d.-xX$]+),([%d.-]+)')
 	if not exp then
 		error('invalid polygonn data ' .. data)
 	end
 	x = tonumber(x)
 	y = tonumber(y)
-	dia = tonumber(dia)
+	dia = self:parse_args(dia,'dia')
 	num = tonumber( num )
 	angle = tonumber( angle )
 	--print('circle',x,y,dia)
 	if not self._canvas then
 		self._canvas = Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2)
 	else
-		self._canvas:union( Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2) )
+		self._canvas:union( Geometry.new_circle(x*self._s,y*self._s,dia*self._s / 2) , true )
 	end
 end
 
@@ -225,6 +225,15 @@ end
 function ApertureMacros:flash( canvas, x, y )
 	canvas:union(self._canvas:translate(x,y))
 	return canvas
+end
+
+function ApertureMacros:parse_args( str, name )
+	local const,arg = string.match(str,'([%d.-]+)[Xx](%$%d+)')
+	if const then
+		print('found variable')
+		return tostring(const)
+	end
+	return tonumber(str)
 end
 
 function ApertureMacros:_init( s )

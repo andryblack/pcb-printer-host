@@ -24,6 +24,7 @@ function Parser:_init( )
 	self._current_aperture = nil
 	self._mm_scale = 1.0
 	self._aperture_macroses = {}
+	self._intscale = 1.0
 	--self._canvas = Geometry.new_collection()
 end
 
@@ -37,7 +38,11 @@ function Parser:set_millimeters(  )
 end
 
 function Parser:set_linear(  )
-	
+	self._interpolation = nil
+end
+
+function Parser:set_circular( dir )
+	self._interpolation = dir
 end
 
 function Parser:on_ext_block_begin_end(  )
@@ -79,11 +84,11 @@ end
 function Parser:on_function_code( block )
 	local gcode,data = string.match(block,'^G(%d+)(.*)')
 	if gcode then
-		gcode = tonumber(gcode)
-		if not self._G[gcode] then
+		local gcoden = tonumber(gcode)
+		if not self._G[gcoden] then
 			error('unknown function code G' .. gcode .. ' at line ' .. self._line_number)
 		end
-		data = self._G[gcode](self,data)
+		data = self._G[gcoden](self,data)
 		if not data or data=='' then
 			return
 		end
@@ -93,9 +98,20 @@ function Parser:on_function_code( block )
 	local data,dcode = string.match(block,'^(.*)D(%d+)$')
 	if dcode then
 		local x,y 
+		local i,j
 		if data ~= '' then
 			x = string.match(data,'X([%+%-]?%d+)')
 			y = string.match(data,'Y([%+%-]?%d+)')
+			if self._interpolation then
+				i = string.match(data,'I([%+%-]?%d+)')
+				if i then
+					i = math.tointeger(i) * self._x_scale
+				end
+				j = string.match(data,'J([%+%-]?%d+)')
+				if j then 
+					j = math.tointeger(j) * self._y_scale
+				end
+			end
 			if x then
 				x = math.tointeger(x) * self._x_scale
 			end
@@ -109,15 +125,20 @@ function Parser:on_function_code( block )
 		
 		dcode = tonumber(dcode)
 		if dcode == 1 then
+			local interpolation = self._interpolation and {
+					t = self._interpolation,
+					i = i,
+					j = j,
+				}
 			if self._region then
-				self._region:draw(x,y)
+				self._region:draw(x,y,interpolation)
 			else
 				if not self._current_contour then
 					self._current_contour = Contour.new()
 					self._current_contour:add_segment(self._current_pos[1],self._current_pos[2])
 				end
 				self._current_pos = { x or self._current_pos[1], y or self._current_pos[2] }
-				self._current_contour:add_segment(self._current_pos[1],self._current_pos[2])
+				self._current_contour:add_segment(self._current_pos[1],self._current_pos[2],interpolation)
 			end
 		elseif dcode == 2 then
 			if self._region then
@@ -178,14 +199,13 @@ Parser._G[1] = function( self, data )
 	return data
 end
 Parser._G[2] = function( self, data )
-	print('WARNING','Circular Interpolation not supported',self._line_number)
-	--self:set_circular('cw')
-	return ''
+	self:set_circular('cw')
+	return data
 end
 Parser._G[3] = function( self, data )
-	print('WARNING','Circular Interpolation not supported',self._line_number)
-	--self:set_circular('ccw')
-	return ''
+	--print('WARNING','Circular Interpolation not supported',self._line_number)
+	self:set_circular('ccw')
+	return data
 end
 Parser._G[4]= function( self, data )
 	print('comment:',data)
@@ -205,10 +225,10 @@ Parser._G[37]= function( self, data )
 		self._canvas:flush()
 		if self._region._polarity == 'D' then
 			--print('union geometry')
-			self._canvas:union(self._region._geometry)
+			self._canvas:union(self._region._geometry,true)
 		else
 			--print('difference geometry')
-			self._canvas:difference(self._region._geometry)
+			self._canvas:difference(self._region._geometry,true)
 		end
 	else
 		if self._region._polarity ~= 'D' then
@@ -247,9 +267,9 @@ function Parser:on_extended_command( cmd )
 	if self._region then
 		error('not allowed in region')
 	end
-	local code,data = string.match(cmd[1],'^(%u%u)(.+)')
+	local code,data = string.match(cmd[1],'^(%u%u)(.*)')
 	if not code then
-		error('unknown extended command')
+		error('unknown extended command (' .. cmd[1]..')' )
 	end
 	if not self._EC[code] then
 		error('unexpected extended command (' .. code .. ')')
@@ -331,7 +351,7 @@ function Parser._EC.LN( self, data )
 	print('name:',name)
 end
 function Parser._EC.IN( self, data )
-	local name = string.match(data,'^(.+)$')
+	local name = string.match(data,'^(.*)$')
 	self._image_name = name
 	print('image name:',name)
 end
@@ -382,6 +402,7 @@ end
 function Parser:finish(  )
 	self:flush_current_contour()
 	self._canvas:flush()
+	return self._canvas
 end
 
 function Parser:polygons( scale )

@@ -22,7 +22,7 @@ function Region:flush_contour(  )
 		end
 		local g = self._contour:build_polygon()
 		if self._geometry then
-			self._geometry:union(g)
+			self._geometry:union(g,true)
 		else
 			self._geometry = g
 		end
@@ -45,10 +45,10 @@ function Region:move( x , y )
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
 end
 
-function Region:draw( x, y )
+function Region:draw( x, y , interpolation )
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
 	--print('Region:draw',self._current_pos[1],self._current_pos[2])
-	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
+	self._contour:add_segment(self._current_pos[1],self._current_pos[2], interpolation)
 end
 
 function Region:get_last_pos(  )
