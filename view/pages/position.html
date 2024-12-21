@@ -1,30 +1,3 @@
-{% layout="layout.html" %}
-{-css-}
-<style>
-/*#svg-viewport {
-  height: 300px;
-  width: 100%;
-  border: 1px;
-  border-style: solid;
-  background: url({*settings.camera_url*});
-  background-repeat: no-repeat; 
-  background-size: cover;
-}*/
-.viewport-video {
-  width: {*settings.camera_size_x*}px;
-  height: {*settings.camera_size_y*}px;
-  position: absolute;
-  transform: scaleX({*settings.camera_flip_x and -1 or 1*}) scaleY({*settings.camera_flip_y and -1 or 1*});
-}
-#svg-content {
-  width: 100%;
-  height: 100%;
-  margin: 0px;
-  border-width: 1px solid black;
-  position: absolute;
-}
-</style> 
-{-css-}
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
 
@@ -50,9 +23,9 @@
   <div class="col">
     <div class="pcb-view-cont" style="width: 640px; height: 480px; border:1px solid black;">
       <div id="svg-viewport" style="width: 100%; height: 100%" >
-        <img id="video-display" class="viewport-video" src="{*settings.camera_url*}" />
-        <svg id="svg-content" viewBox="0 0 {*settings.camera_size_x*} {*settings.camera_size_y*}" xmlns="http://www.w3.org/2000/svg" >
-          <g transform="translate({*settings.camera_pos_x*},{*settings.camera_pos_y*})" opacity="0.4">
+        <img id="video-display" class="viewport-video" src="<%= settings.camera_url %>" />
+        <svg id="svg-content" viewBox="0 0 <%= settings.camera_size_x %> <%= settings.camera_size_y %>" xmlns="http://www.w3.org/2000/svg" >
+          <g transform="translate(<%= settings.camera_pos_x %>, <%= settings.camera_pos_y %>)" opacity="0.4">
             <line x1="-100" y1="0" x2="100" y2="0" style="stroke:rgb(255,0,0);stroke-width:1" />
             <line x1="0" y1="-100" x2="0" y2="100" style="stroke:rgb(255,0,0);stroke-width:1" />
             <circle r="30" stroke="rgb(0,255,0)" stroke-width="1" fill="none" />
@@ -77,10 +50,10 @@
         </div>
         <div class="row no-gutters m-0 mt-2">
           <div class="col-sm-4 m-0"> 
-            <input type="number" class="form-control" id="calibrate-flash-time" value="{* printer.pcb:get_config().flash_time *}" />
+            <input type="number" class="form-control" id="calibrate-flash-time" value="<%= printer.pcb:get_config().flash_time %>" />
           </div>
           <div class="col-sm-4 ml-1"> 
-            <input type="number" class="form-control" id="calibrate-speed" value="{* printer.pcb:get_config().speed *}" />
+            <input type="number" class="form-control" id="calibrate-speed" value="<%= printer.pcb:get_config().speed %>" />
           </div>
           <div class="col-sm-2 ml-1"> 
             <button id="calibrate" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
@@ -131,25 +104,25 @@
           </div>
         </div>
         <div class="row">
-    {% local p1 = printer.pcb:get_pnt('pnt1') 
+    <% local p1 = printer.pcb:get_pnt('pnt1') 
       if p1 then
-        %} 
+        %>
           <div class="form-group mt-1 mb-0"> 
               <button id="set-pnt1" class="btn btn-outline-info mr-2" data-pnt="pnt1">
                 <span data-feather="crosshair"></span>Set P1</button>
           </div>
-       {%
+       <%
       end
       local p2 = printer.pcb:get_pnt('pnt2') 
       if p2 then
-        %} 
+        %> 
            <div class="form-group mt-1 mb-0"> 
               <button id="set-pnt2" class="btn btn-outline-info mr-2" data-pnt="pnt2">
                 <span data-feather="crosshair"></span>Set P2</button>
           </div>
-        {%
+        <%
       end
-    %}
+    %>
         </div>
   </form> <!-- form -->
 </div><!-- col -->
@@ -160,10 +133,35 @@
 </div>
 
 
+-{css}-
+<style>
+/*#svg-viewport {
+  height: 300px;
+  width: 100%;
+  border: 1px;
+  border-style: solid;
+  background: url(<%= settings.camera_url %>);
+  background-repeat: no-repeat; 
+  background-size: cover;
+}*/
+.viewport-video {
+  width: <%= settings.camera_size_x %>px;
+  height: <%= settings.camera_size_y %>px;
+  position: absolute;
+  transform: scaleX(<%= settings.camera_flip_x and -1 or 1 %>) scaleY(<%= settings.camera_flip_y and -1 or 1 %>);
+}
+#svg-content {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+  border-width: 1px solid black;
+  position: absolute;
+}
+</style> 
 
 
 
-{-scripts-}
+-{scripts}-
 
 <script type="text/javascript">
 
@@ -289,7 +287,7 @@ $("#calibrate").click(function() {
 var download_img = new Image();
 
 function update_camera_image() {
-  download_img.src = "{*settings.camera_url*}?time="+ new Date().getTime();
+  download_img.src = "<%= settings.camera_url %>?time="+ new Date().getTime();
 }
 update_camera_image();
 
@@ -302,4 +300,3 @@ download_img.onload = function(){
 
 </script>
 
-{-scripts-}

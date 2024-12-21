@@ -1,31 +1,16 @@
-{% layout="layout.html" %}
-{-css-}
-<style>
-#draw-container {
-  height: 300px;
-  width: 100%;
-  border: 1px;
-  border-style: solid;
-}
-</style>
-{-css-}
-{-jslibs-}
-
-{-jslibs-}
-
 <div id = "alert_placeholder border-bottom" ></div>
 
 <div id="controls" >
 	Position range:
 	<div class="row mt-1">
-		<span id="position-left-value" class="col-sm-1"></span><input type="range" min="1" max="{* settings.printer_width *}" value="1" class="slider col-sm-10" id="position-left">
+		<span id="position-left-value" class="col-sm-1"></span><input type="range" min="1" max="<%= settings.printer_width %>" value="1" class="slider col-sm-10" id="position-left">
   	</div>
   	<div class="row">
-  		<span class="col-sm-1"></span><input type="range" min="1" max="{* settings.printer_width *}" value="{* settings.printer_width *}" class="slider col-sm-10" id="position-right"><span class="col-sm-1" id="position-right-value"></span>
+  		<span class="col-sm-1"></span><input type="range" min="1" max="<%= settings.printer_width %>" value="<%= settings.printer_width %>" class="slider col-sm-10" id="position-right"><span class="col-sm-1" id="position-right-value"></span>
 	</div>
 	Speed:
 	<div class="row mb-1">
-		<span id="speed-value" class="col-sm-1"></span><input type="range" min="{* settings.motor_min_speed *}" max="{* settings.motor_max_speed *}" value="{* settings.motor_min_speed *}" class="slider col-sm-10" id="speed">
+		<span id="speed-value" class="col-sm-1"></span><input type="range" min="<%= settings.motor_min_speed %>" max="<%= settings.motor_max_speed %>" value="<%= settings.motor_min_speed %>" class="slider col-sm-10" id="speed">
   	</div>
 </div>
 
@@ -45,19 +30,19 @@
 		<div class="input-group-prepend" id="input-P-prepend">
           <span class="input-group-text">P</span>
         </div>
-		<input type="number" step="any" id="input-P" class="form-control" aria-describedby="input-P-prepend" value="{*settings.motor_pid_P*}" />
+		<input type="number" step="any" id="input-P" class="form-control" aria-describedby="input-P-prepend" value="<%= settings.motor_pid_P %>" />
 	</div>
 	<div class="input-group mt-1 col-sm-2">
 		<div class="input-group-prepend" id="input-I-prepend">
           <span class="input-group-text">I</span>
         </div>
-		<input type="number" step="any" id="input-I" class="form-control" aria-describedby="input-I-prepend" value="{*settings.motor_pid_D*}"/>
+		<input type="number" step="any" id="input-I" class="form-control" aria-describedby="input-I-prepend" value="<%= settings.motor_pid_D %>"/>
 	</div>
 	<div class="input-group mt-1 col-sm-2">
 		<div class="input-group-prepend" id="input-D-prepend">
           <span class="input-group-text">D</span>
         </div>
-		<input type="number" step="any" id="input-D" class="form-control " aria-describedby="input-D-prepend" value="{*settings.motor_pid_D*}"/>
+		<input type="number" step="any" id="input-D" class="form-control " aria-describedby="input-D-prepend" value="<%= settings.motor_pid_D %>"/>
 	</div>
 	<button id="upload-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-1" disabled="true">
 	      <span data-feather="upload"></span></button> 
@@ -66,7 +51,18 @@
 	
 </div>
 
-{-scripts-}
+-{css}-
+<style>
+#draw-container {
+  height: 300px;
+  width: 100%;
+  border: 1px;
+  border-style: solid;
+}
+</style>
+
+
+-{scripts}-
 
 <script type="text/javascript">
 	$("#position-left-value").html($("#position-left").val()+"mm");
@@ -290,5 +286,3 @@
 		}
 	};
 </script>
-
-{-scripts-}

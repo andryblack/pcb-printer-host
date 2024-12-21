@@ -8,34 +8,45 @@ if not math.pow then
 	end
 end
 
-package.path = dir .. '/?.lua'
 
-package.root = dir
+local async = require 'llae.async'
+local log = require 'llae.log'
+local utils = require 'llae.utils'
+local json = require 'llae.json'
+local fs = require 'llae.fs'
+local uv = require 'llae.uv'
 
-require 'base'
-local llae = require 'llae'
-llae.set_handler()
-local timer_sec = llae.newTimer()
-
-local function funcion_test( a,b,c )
-	
-end
+local http_server = require 'http.server'
+local printer = require 'printer.printer'
+local path = require 'llae.path'
+local video = require 'video'
 
 
-local main_coro = coroutine.create(function()
+local default_config = {
+	addr = '0.0.0.0',
+	port = 8080,
+	files = 'local/files',
+	rootdir = path.join(path.dirname(fs.exepath()),'..'),
+	modules = 'local/share/pcb-laser-printer/?.lua',
+	cmodules = 'no',
+}
+
+async.run(function()
 	local res,err = xpcall(function()
 
 		application = {}
-		application.args = require 'cli_args'
+		application.args = utils.parse_args(_G.args)
 
 
 		local table_load = require 'table_load'
-		local config = table_load.load(table_load.get_path('default_config.lua'),{
-			scripts_root = dir,
-			lua = _G
-		})
+
+		local config = default_config
 		if application.args.config then
-			config = table_load.load(application.args.config,config)
+			local f = fs.load_file(application.args.config)
+			local lconfig = json.decode(f)
+			for k,v in pairs(lconfig) do
+				config[k] = v
+			end
 		end
 		application.config = config
 		package.path = package.path .. ';' .. config.modules
@@ -43,25 +54,26 @@ local main_coro = coroutine.create(function()
 
 		local files_root = application.config.files
 
-		if not os.isdir(files_root) then
-		    os.mkdir(files_root)
+		if not fs.isdir(files_root) then
+		    fs.mkdir(files_root)
 		end
 
-		if not os.isdir(files_root .. '/.printer') then
-		    os.mkdir(files_root .. '/.printer')
+		if not fs.isdir(files_root .. '/.printer') then
+		    fs.mkdir(files_root .. '/.printer')
 		end
 
-		application.http = require 'http.server'
+		application.http = http_server.new( config )
 		application.http:start()
 
-		application.printer = require 'printer.printer'
+		application.printer = printer.new()
 		application.printer:init()
 
-		application.video = require 'video'
-		application.video:init()
+		application.video = video.new()
 		
-		timer_sec:start(function()
-			application.printer:on_timer(timer_sec)
+		application.timer_sec = uv.timer.new()
+
+		application.timer_sec:start(function()
+			application.printer:on_timer(application.timer_sec)
 			application.video:on_timer()
 		end,1000,1000)
 
@@ -69,25 +81,9 @@ local main_coro = coroutine.create(function()
 	debug.traceback)
 
 	if not res then
-		print('failed start printer')
+		log.error('failed start printer')
 		error(err)
 	end
 
 end)
 
-local res,err = coroutine.resume(main_coro)
-if not res then
-	print('failed main thread',err)
-	error(err)
-end
-
-llae.run()
-timer_sec:stop()
-application.http:stop()
-application.printer:stop()
-
-application = nil
-
-print('stop')
-collectgarbage('collect')
-llae.dump()

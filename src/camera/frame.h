@@ -1,15 +1,17 @@
 #ifndef _CAMERA_FRAME_H_INCLUDED_
 #define _CAMERA_FRAME_H_INCLUDED_
 
-#include "ref_counter.h"
+#include <common/intrusive_ptr.h>
+#include <meta/object.h>
 #include <sys/time.h>
-#include "mutex.h"
+#include <uv/mutex.h>
 
 class Frame;
-typedef Ref<Frame> FrameRef;
+typedef common::intrusive_ptr<Frame> FramePtr;
 class VideoSource;
 
-class Frame : public RefCounter {
+class Frame : public meta::object {
+	META_OBJECT
 private:
 	VideoSource* m_source;
 	size_t m_capacity;
@@ -17,7 +19,7 @@ private:
 	struct timeval m_timestamp;
 	explicit Frame(VideoSource* source,size_t cap);
 public:
-	static FrameRef alloc(
+	static FramePtr alloc(
 		VideoSource* source,
 		size_t size);
 	void write(const void* data,size_t size,struct timeval m_timestamp);

@@ -1,4 +1,5 @@
 <!doctype html>
+<% local content = include_parts('pages/'..content,...) %>
 <html lang="en">
   <head>
     <!-- Required meta tags -->
@@ -9,9 +10,9 @@
     <link rel="stylesheet" href="/css/bootstrap.min.css" >
     <link rel="stylesheet" href="/css/styles.css" >
 
-    {% if blocks.css then %}
-     {*blocks.css*}
-    {% end %}
+    <% if content.css then %>
+      <%- content.css(...) %>
+    <% end %>
 
 
     <title>BlackBox</title>
@@ -21,9 +22,9 @@
 
       <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">BlackBox</a>
       <!-- <span class="navbar-text ml-3 mr-auto">Temperature</span> -->
-      <div id="state-title" class="navbar-text col-sm-2 ml-3">{*printer_state.state*}</div> 
+      <div id="state-title" class="navbar-text col-sm-2 ml-3"><%= printer_state.state %></div> 
       <div id="state-progress" class="progress col-sm mr-3 ml-3 pl-0 pr-0">
-        <div class="progress-bar" style="width:{* (printer_state.progress or 0)*100 *}%"></div>
+        <div class="progress-bar" style="width:<%= (printer_state.progress or 0)*100 %>%"></div>
       </div>
       <span id="printer-pos" class="navbar-text col-sm-1 mr-3">
       </span>
@@ -38,10 +39,10 @@
 
     <div class="container-fluid">
       <div class="row">
-        {(fragments/sidebar.html)}
+        <%- include('fragments/sidebar',...) %>
 
-        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4 printer-state-{*printer:get_state().state*}" id="main" >
-          {*view*}
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4 printer-state-<%=printer:get_state().state%>" id="main" >
+          <%- content.base(...) %>
 
           
         </main>
@@ -56,9 +57,9 @@
 
     <script src="/js/feather.min.js"></script>
 
-    {% if blocks.jslibs then %}
-     {*blocks.jslibs*}
-    {% end %}
+    <% if content.jslibs then %>
+      <%- content.jslibs(...) %>
+    <% end %>
 
     <script>
       feather.replace()
@@ -70,16 +71,16 @@
         $('[extra-data-toggle="tooltip"]').tooltip()
       })
 
-      var state = {* json.encode( printer_state ) *};
+      var state = <%- json.encode( printer_state ) %>;
 
-      $('.enabled-on-printer-state-{*printer_state.state*}').prop( "disabled", false );
-      $('.disabled-on-printer-state-{*printer_state.state*}').prop( "disabled", true );
+      $('.enabled-on-printer-state-<%=printer_state.state%>').prop( "disabled", false );
+      $('.disabled-on-printer-state-<%=printer_state.state%>').prop( "disabled", true );
 
       
 
       var page_ctx = {
-        printer_resolution_x: {*printer:get_resolution_x()*},
-        printer_resolution_y: {*printer:get_resolution_y()*}
+        printer_resolution_x: <%= printer:get_resolution_x() %>,
+        printer_resolution_y: <%= printer:get_resolution_y() %>
       };
 
     </script>
@@ -88,9 +89,9 @@
 
     <script src="/js/application.js"></script>
 
-    {% if blocks.scripts then %}
-     {*blocks.scripts*}
-    {% end %}
+    <% if content.scripts then %>
+      <%- content.scripts(...) %>
+    <% end %>
 
     <script type="text/javascript">
         update_state(state);

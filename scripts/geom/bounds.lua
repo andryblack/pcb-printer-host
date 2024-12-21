@@ -2,8 +2,15 @@ local class = require 'llae.class'
 
 local Bounds = class(nil,'geom.Bounds')
 
-function Bounds:_init(  )
-	
+function Bounds:_init( x,y,w,h )
+	if x then
+		self._min_x = x
+		self._min_y = y
+		if w then
+			self._max_x = x + w
+			self._max_y = y + h
+		end
+	end
 end
 
 function Bounds:copy(  )
@@ -48,26 +55,26 @@ function Bounds:intersect( bounds )
 end
 
 function Bounds:x(  )
-	return self._min_x
+	return self._min_x or 0
 end
 
 function Bounds:y(  )
-	return self._min_y
+	return self._min_y or 0
 end
 
 function Bounds:width(  )
-	return self._max_x - self._min_x
+	return (self._max_x or 0) - (self._min_x or 0)
 end
 
-function Bounds:height( ... )
-	return self._max_y - self._min_y
+function Bounds:height(  )
+	return (self._max_y or 0) - (self._min_y or 0)
 end
 
 function Bounds:scale( s )
-	self._min_x = self._min_x * s
-	self._min_y = self._min_y * s
-	self._max_x = self._max_x * s
-	self._max_y = self._max_y * s
+	self._min_x = (self._min_x or 0) * s
+	self._min_y = (self._min_y or 0) * s
+	self._max_x = (self._max_x or 0) * s
+	self._max_y = (self._max_y or 0) * s
 end
 
 function Bounds:extend_points( points )

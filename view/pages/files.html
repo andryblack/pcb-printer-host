@@ -1,57 +1,14 @@
-{% layout="layout.html" %}
-
-{-css-}
-<style>
-.files-list-item {
-  height: 32px;
-}
-
-.files-list-item .feather {
-  margin-right: 16px;
-  width: 18px;
-  height: 18px;
-}
-
-
-.files-list-item .btn {
-  height: 24px;
-  padding-top: 0px;
-  padding-bottom: 0px;
-}
-
-.files-list-item .btn-toolbar {
-  display: none;
-}
-
-.files-list-item:hover  .btn-toolbar {
-  display: inline-block;
-}
-
-
-.files-list-item .btn .feather {
-  margin-left: 4px;
-  margin-right: 4px;
-  margin-top: 0px;
-  margin-bottom: 0px;
-  padding-top: 0px;
-  padding-bottom: 0px;
-  width: 18px;
-  height: 18px;
-}
-</style>
-{-css-}
-
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3">
 
 	<nav aria-label="breadcrumb">
   		<ol class="breadcrumb" id="bc-nav">
     		<a class="breadcrumb-item" href="/files" >root</a>
-    		{% local _p = '/files' %}
-    		{% for item in (path or ''):gmatch('[^/.]+') do %}
-    			{% _p = _p .. '/' .. item %}
-    			<a class="breadcrumb-item" href="{*_p*}">{*item*}</a>
+    		<% local _xp = '/files' %>
+    		<% for item in (path or ''):gmatch('[^/.]+') do %>
+    			<% _xp = _xp .. '/' .. item %>
+    			<a class="breadcrumb-item" href="<%= _xp %>"><%= item %></a>
     			
-    		{% end %}
+    		<% end %>
   		</ol>
 	</nav>
 
@@ -73,7 +30,7 @@
 	  		</div>
 	  	</div>
 
-	  	<div class="dropdown">
+	  	<div class="dropdown" id="upload-menu">
 	    
 	  		<button id="upload" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
 		    	data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -84,7 +41,7 @@
 
 		   
 
-		    <div class="dropdown-menu p-4" aria-labelledby="upload">
+		    <div class="dropdown-menu p-4 col-sm-6" aria-labelledby="upload" >
 		    	<div class="form-group">
 			    	<div class="custom-file">
 					  <input id="upload-file" type="file" class="custom-file-input" onchange="file_select(this)">
@@ -103,7 +60,7 @@
 <ul id="files-table" class="list-group">
 </ul>
 
-{-scripts-}
+-{scripts}-
 
 <script type="text/javascript">
 
@@ -120,7 +77,7 @@ function update_content(data) {
 		        if (item.dir) {
 		        	el = $('<a class="pt-1 pb-1">').appendTo('#files-table');
 		        	el.append( feather.icons.folder.toSvg() );
-		        	el.attr('href','/files/{*(path or '')*}/' + item.name );
+		        	el.attr('href','/files/<%= (path or '') %>/' + item.name );
 		        	el.append($("<strong>").text("["+item.name+"]"));
 		        } else {
 		        	el = $('<il class="pt-1 pb-1">').appendTo('#files-table');
@@ -136,11 +93,11 @@ function update_content(data) {
 		        var btns = $('<div class="btn-toolbar float-right">').appendTo(el);
 
 		        if (item.btn) {
-	        		btns.append( $('<button class="btn btn-outline-success btn-sm mr-2 ">') /*visible-on-printer-state-idle*/
+	        		btns.append( $('<button class="btn btn-outline-success btn-sm mr-2 visible-on-printer-state-idle">')
 	        			.append(feather.icons[item.btn.icon].toSvg())
 	        			.click(function(event){
 	        				event.stopPropagation();
-	        				event.preventDefault();
+	        				console.log('click action ' + item.name);
 	        				on_file_action(item);
 	        			}));
 		        }
@@ -150,9 +107,8 @@ function update_content(data) {
 		        			.click(function(event){
 		        				event.stopPropagation();
 		        				event.preventDefault();
-		        				//console.log('click remove ' + item.name);
+		        				console.log('click remove ' + item.name);
 		        				remove_file(item.name);
-		        				event.stopPropagation();
 		        			}));
 		       
 		        	
@@ -162,13 +118,18 @@ function update_content(data) {
 }
 
 function load_content() {
-	fetch('/api/files?path=/{*(path or '')*}')
+	fetch('/api/files?path=/<%= (path or '') %>')
 	  .then(checkStatus)
 	  .then(parseJSON)
+	  .then(checkResultStatus)
 	  .then(function(data) {
-	  	update_content(data)
+	  	update_content(data.data)
 	  }).catch(function(error) {
 	    console.log('request failed', error)
+		    bootstrap_alert.error(
+		  			'<p>Failed load files <strong><%= (path or '') %></strong></p>'+
+		  			'<hr><p class="mb-0">' + error + '</p>'
+		  		);
 	  })	
 }
 load_content();
@@ -176,9 +137,9 @@ load_content();
 $('#new-folder-submit').click(function(){
 	var folder = $('#new-folder-name').val();
 	$('#new-folder-name').val('');
-	//console.log('create new folder: ' + folder);
+	console.log('create new folder: ' + folder);
 	if (folder != "") {
-		fetch('/api/mkdir?path=/{*(path or '')*}/'+ folder,{method:'POST'})
+		fetch('/api/mkdir?path=/<%= (path or '') %>/'+ folder,{method:'POST'})
 		  .then(checkStatus)
 		  .then(parseJSON)
 		  .then(checkResultStatus)
@@ -206,7 +167,7 @@ function file_select(event) {
 }
 
 $('#upload-file-name').click(function(){
-	var file = findElementById('upload-file').files[0];
+	var file = document.getElementById('upload-file').files[0];
 	if (file) {
 		console.log("has file:" + file.name);
 	} else {
@@ -215,11 +176,16 @@ $('#upload-file-name').click(function(){
 	}
 });
 
+$('#upload-menu').on('show.bs.dropdown',function(){
+		var file = document.getElementById('upload-file-name');
+		file.innerHTML = 'Choose file..';
+});
+
 $('#upload-file-submit').click(function(){
 	var file = document.getElementById('upload-file').files[0];
 	var data = new FormData()
 	data.append('file', file);
-	data.append('path', '/{*(path or '')*}');
+	data.append('path', '/<%= (path or '') %>');
 	fetch('/api/upload', {
 	  method: 'POST',
 	  body: data
@@ -242,7 +208,7 @@ $('#upload-file-submit').click(function(){
 });
 
 function remove_file(file) {
-	fetch('/api/remove?file=/{*(path or '')*}/' + file,{method: 'POST'})
+	fetch('/api/remove?file=/<%= (path or '') %>/' + file,{method:'POST'})
 	  .then(checkStatus)
 	  .then(parseJSON)
 	  .then(checkResultStatus)
@@ -263,8 +229,8 @@ function remove_file(file) {
 // });
 
 function on_file_action(item) {
-	console.log('click file action /{*(path or '')*}/'+ item.name + ' ' + item.btn.action);
-	fetch('/api/' + item.btn.action + '?file=/{*(path or '')*}/' + item.name, {
+	console.log('click file action /<%= (path or '') %>/'+ item.name + ' ' + item.btn.action);
+	fetch('/api/' + item.btn.action + '?file=/<%= (path or '') %>/' + item.name, {
 		method: 'POST',
 	})
 	  .then(checkStatus)
@@ -288,6 +254,3 @@ function on_file_action(item) {
 }
 
 </script>
-
-{-scripts-}
-

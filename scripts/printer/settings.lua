@@ -1,3 +1,4 @@
+return [[
 string {
 	name = 'device',
 	descr = 'serial connection device',
@@ -227,3 +228,4 @@ boolean {
 	default = false,
 	page = 'camera'
 }
+]]

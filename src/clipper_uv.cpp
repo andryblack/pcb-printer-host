@@ -1,92 +1,110 @@
 #include "clipper_uv.h"
+#include <lua/bind.h>
+#include <lua/stack.h>
+#include <uv/work.h>
+#include <uv/luv.h>
 
-#include "luabind.h"
-
-#include "llae.h"
-#include "clipper_uv.h"
-
-#ifndef CLIPPERLIB_MODNAME
-#define CLIPPERLIB_MODNAME   "clipperlib"
-#endif
-
-#ifndef CLIPPERLIB_VERSION
-#define CLIPPERLIB_VERSION   CLIPPER_VERSION
-#endif
-
-static const char* Path_mt = "clipperlib.Path";
+META_OBJECT_INFO(ClipperPath,meta::object)
+META_OBJECT_INFO(Clipper,meta::object)
+META_OBJECT_INFO(ClipperOffset,meta::object)
 
 ClipperPath::ClipperPath() {
-
+	
 }
 
 ClipperPath::~ClipperPath() {
 
 }
 
-int ClipperPath::lnew(lua_State* L) {
-	(new ClipperPath())->push(L);
-	return 1;
+void ClipperPath::lbind(lua::state& l) {
+	lua::bind::function(l,"new",&ClipperPath::lnew);
+	lua::bind::function(l,"clear",&ClipperPath::clear);
+	lua::bind::function(l,"size",&ClipperPath::size);
+	lua::bind::function(l,"add_point",&ClipperPath::add_point);
+	lua::bind::function(l,"get_point",&ClipperPath::get_point);
+	lua::bind::function(l,"import",&ClipperPath::import);
+	lua::bind::function(l,"export",&ClipperPath::do_export);
+	lua::bind::function(l,"nearest_point",&ClipperPath::nearest_point);
+	lua::bind::function(l,"__tostring",&ClipperPath::_tostring);
 }
 
-void ClipperPath::push(lua_State* L) {
-	new (lua_newuserdata(L,sizeof(ClipperPathRef))) ClipperPathRef(this);
-	luaL_setmetatable(L,Path_mt);
+lua::multiret ClipperPath::lnew(lua::state& l) {
+	lua::push(l,ClipperPathPtr(new ClipperPath()));
+	return {1};
 }
-void ClipperPath::clear(lua_State* L) {
+
+void ClipperPath::clear() {
 	clipperlib::Path tmp;
 	m_path.swap(tmp);
 }
-void ClipperPath::add_point(lua_State* L,lua_Integer x,lua_Integer y) {
+
+lua::multiret ClipperPath::_tostring(lua::state& l) {
+	l.checkstack(m_path.size());
+	l.checkstack(5);
+	for (auto& pnt:m_path) {
+		l.pushstring("{");
+		l.pushinteger(pnt.x);
+		l.pushstring(",");
+		l.pushinteger(pnt.y);
+		l.pushstring("},");
+		l.concat(5);
+	}
+	if (!m_path.empty()) {
+		l.concat(m_path.size());
+		return {1};
+	}
+	l.pushstring("");
+	return {1};
+}
+
+void ClipperPath::add_point(lua_Integer x,lua_Integer y) {
 	m_path.push_back(clipperlib::Point64(x,y));
 }
 
-int ClipperPath::get_point(lua_State* L) {
-	ClipperPath* self = ClipperPathRef::get_ptr(L,1);
-	lua_Integer idx = luaL_checkinteger(L,2);
-	if (idx < 0 || idx >= self->m_path.size()) {
-		luaL_error(L,"invalid index %d (size:%d)",idx,lua_Integer(self->m_path.size()));
+lua::multiret ClipperPath::get_point(lua::state& l,lua_Integer idx) {
+	if (idx < 0 || idx >= m_path.size()) {
+		l.error("invalid index %d (size:%d)",idx,lua_Integer(m_path.size()));
 	}
-	const clipperlib::Point64& pnt(self->m_path[idx]);
-	lua_pushinteger(L,pnt.x);
-	lua_pushinteger(L,pnt.y);
-	return 2;
+	const clipperlib::Point64& pnt(m_path[idx]);
+	l.pushinteger(pnt.x);
+	l.pushinteger(pnt.y);
+	return {2};
 }
 
-int ClipperPath::import(lua_State* L) {
-	luaL_checktype(L,1,LUA_TTABLE);
-	lua_Integer plen = luaL_len(L,1);
-	lua_Number scale = luaL_optnumber(L,2,1.0);
+lua::multiret ClipperPath::import(lua::state& l) {
+	l.checktype(1,lua::value_type::table);
+	lua_Integer plen = l.len(1);
+	lua_Number scale = l.optnumber(2,1.0);
 	ClipperPath* self = new ClipperPath();
-	self->push(L);
+	lua::push(l,ClipperPathPtr(self));
 	self->m_path.reserve(plen);
 	for (lua_Integer i=1;i<=plen;++i) {
-		lua_geti(L,1,i);
-		luaL_checktype(L,-1,LUA_TTABLE);
-		lua_geti(L,-1,1);
-		lua_geti(L,-2,2);
-		lua_Number x = lua_tonumber(L,-2);
-		lua_Number y = lua_tonumber(L,-1);
-		lua_pop(L,3);
+		l.geti(1,i);
+		l.checktype(-1,lua::value_type::table);
+		l.geti(-1,1);
+		l.geti(-2,2);
+		lua_Number x = l.tonumber(-2);
+		lua_Number y = l.tonumber(-1);
+		l.pop(3);
 		self->m_path.push_back(clipperlib::Point64(x*scale,y*scale));
 	}
-	return 1;
+	return {1};
 }
 
-int ClipperPath::do_export(lua_State* L) {
-	ClipperPath* self = ClipperPathRef::get_ptr(L,1);
-	lua_Number s = luaL_optnumber(L,2,1.0);
-	lua_createtable(L,self->m_path.size(),0);
+lua::multiret ClipperPath::do_export(lua::state& l) {
+	lua_Number s = l.optnumber(2,1.0);
+	l.createtable(m_path.size(),0);
 	lua_Integer i = 1;
-	for (clipperlib::Path::const_iterator it=self->m_path.begin();it!=self->m_path.end();++it) {
-		lua_createtable(L,2,0);
-		lua_pushnumber(L,it->x*s);
-		lua_seti(L,-2,1);
-		lua_pushnumber(L,it->y*s);
-		lua_seti(L,-2,2);
-		lua_seti(L,-2,i);
+	for (auto it=m_path.begin();it!=m_path.end();++it) {
+		l.createtable(2,0);
+		l.pushnumber(it->x*s);
+		l.seti(-2,1);
+		l.pushnumber(it->y*s);
+		l.seti(-2,2);
+		l.seti(-2,i);
 		++i;
 	}
-	return 1;
+	return {1};
 }
 
 static inline const int64_t sq_len(const clipperlib::Point64& a, const clipperlib::Point64& b) {
@@ -95,46 +113,44 @@ static inline const int64_t sq_len(const clipperlib::Point64& a, const clipperli
 	return dx * dx + dy * dy;
 }
 
-int ClipperPath::nearest_point(lua_State* L) {
-	ClipperPath* self = ClipperPathRef::get_ptr(L,1);
-	lua_Integer x = luaL_checkinteger(L,2);
-	lua_Integer y = luaL_checkinteger(L,3);
-	size_t size = self->m_path.size();
+lua::multiret ClipperPath::nearest_point(lua::state& l) {
+	lua_Integer x = l.checkinteger(2);
+	lua_Integer y = l.checkinteger(3);
+	size_t size = m_path.size();
 	if (size == 0) {
-		luaL_error(L,"path is empty");
+		l.error("path is empty");
 	}
 	clipperlib::Point64 pnt(x,y);
 
-	int64_t min_len = sq_len(pnt,self->m_path[0]);
+	int64_t min_len = sq_len(pnt,m_path[0]);
 	size_t min_idx = 0;
 	for (size_t i=1;i<size;++i) {
-		int64_t sl = sq_len(pnt,self->m_path[i]);
+		int64_t sl = sq_len(pnt,m_path[i]);
 		if (sl < min_len) {
 			min_len = sl;
 			min_idx = i;
 		}
 	}
-	lua_pushinteger(L,min_idx);
-	lua_pushinteger(L,min_len);
-	return 2;
+	l.pushinteger(min_idx);
+	l.pushinteger(min_len);
+	return {2};
 }
 
 
 
-static void lua_pushPaths(lua_State* L, clipperlib::Paths& paths) {
-	lua_createtable(L,paths.size(),0);
+static void lua_pushPaths(lua::state& l, clipperlib::Paths& paths) {
+	l.createtable(paths.size(),0);
 	lua_Integer i = 1;
 	for (clipperlib::Paths::iterator it = paths.begin();it!=paths.end();++it) {
 		clipperlib::Path& p(*it);
 		ClipperPath* r = new ClipperPath();
 		r->swap(p);
-		r->push(L);
-		lua_seti(L,-2,i);
+		lua::push(l,ClipperPathPtr(r));
+		l.seti(-2,i);
 		++i;
 	}
 }
 
-static const char* Clipper_mt = "clipperlib.Clipper";
 
 Clipper::Clipper() {
 
@@ -144,102 +160,100 @@ Clipper::~Clipper() {
 
 }
 
-int Clipper::lnew(lua_State* L) {
-	(new Clipper())->push(L);
-	return 1;
+void Clipper::lbind(lua::state& l) {
+	lua::bind::function(l,"new",&Clipper::lnew);
+	lua::bind::function(l,"clear",&Clipper::clear);
+	lua::bind::function(l,"add_path",&Clipper::add_path);
+	lua::bind::function(l,"add_paths",&Clipper::add_paths);
+	lua::bind::function(l,"execute",&Clipper::execute);
 }
 
-void Clipper::push(lua_State* L) {
-	new (lua_newuserdata(L,sizeof(ClipperRef))) ClipperRef(this);
-	luaL_setmetatable(L,Clipper_mt);
+lua::multiret Clipper::lnew(lua::state& l) {
+	lua::push(l,ClipperPtr(new Clipper()));
+	return {1};
 }
 
-void Clipper::clear(lua_State* L) {
+
+void Clipper::clear() {
 	m_clipper.Clear();
 }
 
-void Clipper::add_path(lua_State* L,const ClipperPathRef& path) {
-	clipperlib::PathType polytype = static_cast<clipperlib::PathType>(luaL_checkinteger(L,3));
-	bool is_open = lua_toboolean(L,4);
+void Clipper::add_path(lua::state& l,const ClipperPathPtr& path) {
+	clipperlib::PathType polytype = static_cast<clipperlib::PathType>(l.checkinteger(3));
+	bool is_open = l.toboolean(4);
 	m_clipper.AddPath(path->get(),polytype,is_open);
 }
-int Clipper::add_paths(lua_State* L) {
-	ClipperRef self = ClipperRef::get_ref(L,1);
-	luaL_checktype(L,2,LUA_TTABLE);
-	clipperlib::PathType polytype = static_cast<clipperlib::PathType>(luaL_checkinteger(L,3));
-	bool is_open = lua_toboolean(L,4);
-	lua_Integer plen = luaL_len(L,2);
+
+void Clipper::add_paths(lua::state& l) {
+	l.checktype(2,lua::value_type::table);
+	clipperlib::PathType polytype = static_cast<clipperlib::PathType>(l.checkinteger(3));
+	bool is_open = l.toboolean(4);
+	lua_Integer plen = l.len(2);
 	for (lua_Integer p=1;p<=plen;++p) {
-		lua_geti(L,2,p);
-		ClipperPathRef path = ClipperPathRef::get_ref(L,-1);
-		self->m_clipper.AddPath(path->get(),polytype,is_open);
-		lua_pop(L,1);
+		l.geti(2,p);
+		auto path = lua::stack<ClipperPathPtr>::get(l,-1);
+		m_clipper.AddPath(path->get(),polytype,is_open);
+		l.pop(1);
 	}
-	return 0;
 }
 
-int ClipperExecuteReq::start(lua_State* L) {
-	m_clipper = ClipperRef::get_ref(L,1);
-	m_type = static_cast<clipperlib::ClipType>(luaL_checkinteger(L,2));
-	m_fr = static_cast<clipperlib::FillRule>(luaL_checkinteger(L,3));
-	lua_pushthread(L);
-	return ThreadWorkReq::start(L);
-}
-
-void ClipperExecuteReq::on_work() {
-	m_result = m_clipper->get().Execute(m_type,m_solution_closed,m_solution_opened,m_fr);
-}
-
-void ClipperExecuteReq::on_after_work(int status) {
-	if (status != 0) {
-		ThreadWorkReq::on_after_work(status);
-		return;
+class ClipperExecuteReq : public uv::lua_cont_work {
+private:
+	ClipperPtr m_clipper;
+	clipperlib::ClipType m_type;
+	clipperlib::FillRule m_fr;
+	clipperlib::Paths m_solution_closed;
+	clipperlib::Paths m_solution_opened;
+	bool m_result;
+	virtual void on_work() override {
+		m_result =  m_clipper->get().Execute(m_type,m_solution_closed,m_solution_opened,m_fr);
 	}
-	int res = 1;
-	lua_State* L = llae_get_vm(m_work.loop);
-	if (L) {
-		if (m_th) {
-			lua_pushboolean(L,m_result ? 1 : 0);
-			if (m_result) {
-				lua_pushPaths(L,m_solution_closed);
-				lua_pushPaths(L,m_solution_opened);
-				res = 3;
-			}
-			m_th.resumevi(L,"ClipperExecuteReq::on_after_work",res);
-			m_th.reset(L);
+	virtual int resume_args(lua::state& l,int status) override {
+		if (status != 0) {
+			l.pushnil();
+            uv::push_error(l,status);
+            return 2;
 		}
-		
-	}
-}
-
-int Clipper::execute(lua_State* L) {
-	if (lua_isyieldable(L)) {
-		{
-			ClipperExecuteReqRef req(new ClipperExecuteReq());
-			int res = req->start(L);
-			lua_llae_handle_error(L,"clipper::execute",res);
+		if (m_result) {
+			lua_pushPaths(l,m_solution_closed);
+			lua_pushPaths(l,m_solution_opened);
+			return 2;
 		}
-		return lua_yield(L,3);
-	} 
-
-	ClipperRef clipper = ClipperRef::get_ref(L,1);
-	clipperlib::ClipType type = static_cast<clipperlib::ClipType>(luaL_checkinteger(L,2));
-	clipperlib::FillRule fr = static_cast<clipperlib::FillRule>(luaL_checkinteger(L,3));
-	clipperlib::Paths solution_closed;
-	clipperlib::Paths solution_opened;
-	bool r = clipper->m_clipper.Execute(type,solution_closed,solution_opened,fr);
-	if (!r) {
-		lua_pushboolean(L,0);
-		lua_pushinteger(L,r);
+		l.pushnil();
+		l.pushstring("failed");
 		return 2;
-	} 
-	lua_pushboolean(L,1);
-	lua_pushPaths(L,solution_closed);
-	lua_pushPaths(L,solution_opened);
-	return 3;
-}
+	}
+public:
+	ClipperExecuteReq( ClipperPtr&& clipper,clipperlib::ClipType ct,clipperlib::FillRule fr,lua::ref&& cont) : uv::lua_cont_work(std::move(cont)),
+		m_clipper(std::move(clipper)),m_type(ct),m_fr(fr),m_result(false) {}
 
-static const char* ClipperOffset_mt = "clipperlib.ClipperOffset";
+};
+
+lua::multiret Clipper::execute(lua::state& l) {
+	if (!l.isyieldable()) {
+		l.error("Clipper::execute is async");
+	}
+	clipperlib::ClipType type = static_cast<clipperlib::ClipType>(l.checkinteger(2));
+	clipperlib::FillRule fr = static_cast<clipperlib::FillRule>(l.checkinteger(3));
+	{
+
+		l.pushthread();
+		lua::ref cont;
+		cont.set(l);
+
+		common::intrusive_ptr<ClipperExecuteReq> req(new ClipperExecuteReq(ClipperPtr(this),type,fr,std::move(cont)));
+
+		int r = req->queue_work(l);
+		if (r < 0) {
+			req->reset(l);
+			l.pushnil();
+			uv::push_error(l,r);
+			return {2};
+		} 
+	}
+	l.yield(0);
+	return {0};
+}
 
 ClipperOffset::ClipperOffset() {
 
@@ -249,187 +263,140 @@ ClipperOffset::~ClipperOffset() {
 
 }
 
-int ClipperOffset::lnew(lua_State* L) {
-	(new ClipperOffset())->push(L);
-	return 1;
+lua::multiret ClipperOffset::lnew(lua::state& l) {
+	lua::push(l,ClipperOffsetPtr(new ClipperOffset()));
+	return {1};
 }
-void ClipperOffset::push(lua_State* L) {
-	new (lua_newuserdata(L,sizeof(ClipperOffsetRef))) ClipperOffsetRef(this);
-	luaL_setmetatable(L,ClipperOffset_mt);
+
+void ClipperOffset::lbind(lua::state& l) {
+	lua::bind::function(l,"new",&ClipperOffset::lnew);
+	lua::bind::function(l,"clear",&ClipperOffset::clear);
+	lua::bind::function(l,"add_path",&ClipperOffset::add_path);
+	lua::bind::function(l,"add_paths",&ClipperOffset::add_paths);
+	lua::bind::function(l,"execute",&ClipperOffset::execute);
 }
-void ClipperOffset::clear(lua_State* L) {
+
+void ClipperOffset::clear() {
 	m_clipper.Clear();
 }
-void ClipperOffset::add_path(lua_State* L,const ClipperPathRef& path) {
-	clipperlib::JoinType jt = static_cast<clipperlib::JoinType>(luaL_checkinteger(L,3));
-	clipperlib::EndType et = static_cast<clipperlib::EndType>(luaL_checkinteger(L,4));
+
+void ClipperOffset::add_path(lua::state& l,const ClipperPathPtr& path) {
+	clipperlib::JoinType jt = static_cast<clipperlib::JoinType>(l.checkinteger(3));
+	clipperlib::EndType et = static_cast<clipperlib::EndType>(l.checkinteger(4));
 	m_clipper.AddPath(path->get(),jt,et);
 }
 
-int ClipperOffset::add_paths(lua_State* L) {
-	ClipperOffsetRef self = ClipperOffsetRef::get_ref(L,1);
-	luaL_checktype(L,2,LUA_TTABLE);
-	clipperlib::JoinType jt = static_cast<clipperlib::JoinType>(luaL_checkinteger(L,3));
-	clipperlib::EndType et = static_cast<clipperlib::EndType>(luaL_checkinteger(L,4));
-	lua_Integer plen = luaL_len(L,2);
+void ClipperOffset::add_paths(lua::state& l) {
+	l.checktype(2,lua::value_type::table);
+	clipperlib::JoinType jt = static_cast<clipperlib::JoinType>(l.checkinteger(3));
+	clipperlib::EndType et = static_cast<clipperlib::EndType>(l.checkinteger(4));
+	lua_Integer plen = l.len(2);
 	for (lua_Integer p=1;p<=plen;++p) {
-		lua_geti(L,2,p);
-		ClipperPathRef path = ClipperPathRef::get_ref(L,-1);
-		self->get().AddPath(path->get(),jt,et);
-		lua_pop(L,1);
+		l.geti(2,p);
+		auto path = lua::stack<ClipperPathPtr>::get(l,-1);
+		m_clipper.AddPath(path->get(),jt,et);
+		l.pop(1);
 	}
-	return 0;
 }
 
-int ClipperOffsetExecuteReq::start(lua_State* L) {
-	m_clipper = ClipperOffsetRef::get_ref(L,1);
-	m_delta = luaL_checknumber(L,2);
-	lua_pushthread(L);
-	return ThreadWorkReq::start(L);
-}
 
-void ClipperOffsetExecuteReq::on_work() {
-	m_clipper->get().Execute(m_solution,m_delta);
-}
 
-void ClipperOffsetExecuteReq::on_after_work(int status) {
-	if (status != 0) {
-		ThreadWorkReq::on_after_work(status);
-		return;
+class ClipperOffsetExecuteReq : public uv::lua_cont_work {
+private:
+	ClipperOffsetPtr m_clipper;
+	double m_delta;
+	clipperlib::Paths m_solution;
+	virtual void on_work() override {
+		m_clipper->get().Execute(m_solution,m_delta);
 	}
-	lua_State* L = llae_get_vm(m_work.loop);
-	if (L) {
-		if (m_th) {
-			lua_pushPaths(L,m_solution);
-			m_th.resumevi(L,"ClipperOffsetExecuteReq::on_after_work",1);
-			m_th.reset(L);
+	virtual int resume_args(lua::state& l,int status) override {
+		if (status != 0) {
+			l.pushnil();
+            uv::push_error(l,status);
+            return 2;
 		}
+		lua_pushPaths(l,m_solution);
+		return 1;
 	}
+public:
+	ClipperOffsetExecuteReq( ClipperOffsetPtr&& clipper,double delta,lua::ref&& cont) : uv::lua_cont_work(std::move(cont)),
+		m_clipper(std::move(clipper)),m_delta(delta) {}
+
+};
+
+lua::multiret ClipperOffset::execute(lua::state& l) {
+	if (!l.isyieldable()) {
+		l.error("ClipperOffset::execute is async");
+	}
+	auto offset = l.checknumber(2);
+	{
+
+		l.pushthread();
+		lua::ref cont;
+		cont.set(l);
+
+		common::intrusive_ptr<ClipperOffsetExecuteReq> req{new ClipperOffsetExecuteReq(ClipperOffsetPtr(this),offset,std::move(cont))};
+
+		int r = req->queue_work(l);
+		if (r < 0) {
+			req->reset(l);
+			l.pushnil();
+			uv::push_error(l,r);
+			return {2};
+		} 
+	}
+	l.yield(0);
+	return {0};
 }
 
-int ClipperOffset::execute(lua_State* L) {
-	if (lua_isyieldable(L)) {
-		{
-			ClipperOffsetExecuteReqRef req(new ClipperOffsetExecuteReq());
-			int res = req->start(L);
-			lua_llae_handle_error(L,"clipperoffset::execute",res);
-		}
-		return lua_yield(L,2);
-	} 
-	ClipperOffsetRef clipper = ClipperOffsetRef::get_ref(L,1);
-	double delta = luaL_checknumber(L,2);
-	clipperlib::Paths solution;
-	clipper->get().Execute(solution,delta);
-	lua_pushPaths(L,solution);
-	return 1;
-}
 
-static int lua_clipperlib_new(lua_State *L) {
-	lua_newtable(L);
+int luaopen_clipperlib(lua_State* L) {
+	lua::state l(L);
+	lua::bind::object<ClipperPath>::register_metatable(l,&ClipperPath::lbind);
+	lua::bind::object<Clipper>::register_metatable(l,&Clipper::lbind);
+	lua::bind::object<ClipperOffset>::register_metatable(l,&ClipperOffset::lbind);
+	l.createtable();
 
-	luaL_newmetatable(L,Path_mt);
-	luabind::bind(L,"new",&ClipperPath::lnew);
-	luabind::bind(L,"clear",&ClipperPath::clear);
-	luabind::bind(L,"size",&ClipperPath::size);
-	luabind::bind(L,"add_point",&ClipperPath::add_point);
-	luabind::bind(L,"get_point",&ClipperPath::get_point);
-	luabind::bind(L,"import",&ClipperPath::import);
-	luabind::bind(L,"export",&ClipperPath::do_export);
-	luabind::bind(L,"nearest_point",&ClipperPath::nearest_point);
-    lua_pushvalue(L,-1);
-    lua_setfield(L,-2,"__index");
-    lua_pushcfunction(L,&ClipperPathRef::gc);
-	lua_setfield(L,-2,"__gc");
-    lua_setfield(L,-2,"Path");
+	lua::bind::object<ClipperPath>::get_metatable(l);
+	l.setfield(-2,"Path");
+	lua::bind::object<Clipper>::get_metatable(l);
+	l.setfield(-2,"Clipper");
+	lua::bind::object<ClipperOffset>::get_metatable(l);
+	l.setfield(-2,"ClipperOffset");
 
-	luaL_newmetatable(L,Clipper_mt);
-	luabind::bind(L,"new",&Clipper::lnew);
-	luabind::bind(L,"clear",&Clipper::clear);
-	luabind::bind(L,"add_path",&Clipper::add_path);
-	luabind::bind(L,"add_paths",&Clipper::add_paths);
-	luabind::bind(L,"execute",&Clipper::execute);
 
-    lua_pushvalue(L,-1);
-    lua_setfield(L,-2,"__index");
-    lua_pushcfunction(L,&ClipperRef::gc);
-	lua_setfield(L,-2,"__gc");
-    lua_setfield(L,-2,"Clipper");
+	l.createtable();
+	lua::bind::value(l,"None",clipperlib::ctNone);
+    lua::bind::value(l,"Intersection",clipperlib::ctIntersection);
+    lua::bind::value(l,"Union",clipperlib::ctUnion);
+    lua::bind::value(l,"Difference",clipperlib::ctDifference);
+    lua::bind::value(l,"Xor",clipperlib::ctXor);
+    l.setfield(-2,"ClipType");
 
-    luaL_newmetatable(L,ClipperOffset_mt);
-    luabind::bind(L,"new",&ClipperOffset::lnew);
-	luabind::bind(L,"clear",&ClipperOffset::clear);
-	luabind::bind(L,"add_path",&ClipperOffset::add_path);
-	luabind::bind(L,"add_paths",&ClipperOffset::add_paths);
-	luabind::bind(L,"execute",&ClipperOffset::execute);
+	l.createtable();
+	lua::bind::value(l,"Subject",clipperlib::ptSubject);
+    lua::bind::value(l,"Clip",clipperlib::ptClip);
+    l.setfield(-2,"PathType");
 
-    lua_pushvalue(L,-1);
-    lua_setfield(L,-2,"__index");
-    lua_pushcfunction(L,&ClipperOffsetRef::gc);
-	lua_setfield(L,-2,"__gc");
-    lua_setfield(L,-2,"ClipperOffset");
+	l.createtable();
+	lua::bind::value(l,"EvenOdd",clipperlib::frEvenOdd);
+    lua::bind::value(l,"NonZero",clipperlib::frNonZero);
+   	lua::bind::value(l,"Positive",clipperlib::frPositive);
+   	lua::bind::value(l,"Negative",clipperlib::frNegative);
+    l.setfield(-2,"FillRule");
 
-    lua_newtable(L);
-    lua_pushinteger(L,clipperlib::ctNone);
-    lua_setfield(L,-2,"None");
-    lua_pushinteger(L,clipperlib::ctIntersection);
-    lua_setfield(L,-2,"Intersection");
-    lua_pushinteger(L,clipperlib::ctUnion);
-    lua_setfield(L,-2,"Union");
-    lua_pushinteger(L,clipperlib::ctDifference);
-    lua_setfield(L,-2,"Difference");
-    lua_pushinteger(L,clipperlib::ctXor);
-    lua_setfield(L,-2,"Xor");
-    lua_setfield(L,-2,"ClipType");
+	l.createtable();
+	lua::bind::value(l,"Square",clipperlib::kSquare);
+    lua::bind::value(l,"Round",clipperlib::kRound);
+   	lua::bind::value(l,"Miter",clipperlib::kMiter);
+    l.setfield(-2,"JoinType");
 
-    lua_newtable(L);
-    lua_pushinteger(L,clipperlib::ptSubject);
-    lua_setfield(L,-2,"Subject");
-    lua_pushinteger(L,clipperlib::ptClip);
-    lua_setfield(L,-2,"Clip");
-    lua_setfield(L,-2,"PathType");
-
-    lua_newtable(L);
-    lua_pushinteger(L,clipperlib::frEvenOdd);
-    lua_setfield(L,-2,"EvenOdd");
-    lua_pushinteger(L,clipperlib::frNonZero);
-    lua_setfield(L,-2,"NonZero");
-    lua_pushinteger(L,clipperlib::frPositive);
-    lua_setfield(L,-2,"Positive");
-    lua_pushinteger(L,clipperlib::frNegative);
-    lua_setfield(L,-2,"Negative");
-    lua_setfield(L,-2,"FillRule");
-
-    lua_newtable(L);
-    lua_pushinteger(L,clipperlib::kSquare);
-    lua_setfield(L,-2,"Square");
-    lua_pushinteger(L,clipperlib::kRound);
-    lua_setfield(L,-2,"Round");
-    lua_pushinteger(L,clipperlib::kMiter);
-    lua_setfield(L,-2,"Miter");
-    lua_setfield(L,-2,"JoinType");
-
-    lua_newtable(L);
-    lua_pushinteger(L,clipperlib::kPolygon);
-    lua_setfield(L,-2,"Polygon");
-    lua_pushinteger(L,clipperlib::kOpenJoined);
-    lua_setfield(L,-2,"OpenJoined");
-    lua_pushinteger(L,clipperlib::kOpenButt);
-    lua_setfield(L,-2,"OpenButt");
-    lua_pushinteger(L,clipperlib::kOpenSquare);
-    lua_setfield(L,-2,"OpenSquare");
-    lua_pushinteger(L,clipperlib::kOpenRound);
-    lua_setfield(L,-2,"OpenRound");
-    lua_setfield(L,-2,"EndType");
-
-	/* Set module name / version fields */
-    lua_pushliteral(L, CLIPPERLIB_MODNAME);
-    lua_setfield(L, -2, "_NAME");
-    lua_pushliteral(L, CLIPPERLIB_VERSION);
-    lua_setfield(L, -2, "_VERSION");
-    return 1;
-}
-
-extern "C" int luaopen_clipperlib(lua_State* L) {
-	lua_clipperlib_new(L);
+	l.createtable();
+	lua::bind::value(l,"Polygon",clipperlib::kPolygon);
+    lua::bind::value(l,"OpenJoined",clipperlib::kOpenJoined);
+   	lua::bind::value(l,"OpenButt",clipperlib::kOpenButt);
+    lua::bind::value(l,"OpenSquare",clipperlib::kOpenSquare);
+    lua::bind::value(l,"OpenRound",clipperlib::kOpenRound);
+    l.setfield(-2,"EndType");
 	return 1;
 }

@@ -1,5 +1,8 @@
 local class = require 'llae.class'
+local log = require 'llae.log'
 local llae = require 'llae'
+local async = require 'llae.async'
+local uv = require 'llae.uv'
 
 local struct = require 'protocol.struct'
 local Slip = require 'protocol.slip'
@@ -103,10 +106,8 @@ function Protocol:_init( delegate )
 	self._delegate = delegate
 	self._encoder = Slip.encoder.new()
 	self._decoder = Slip.decoder.new(self)
-	self._timeout = llae.newTimer()
-	self._timeout_cb = function ()
-		self:_on_timeout()
-	end
+	self._timeout = uv.timer.new()
+	
 	self:reset()
 	self._print_timeout = 1000*1000
 end
@@ -231,9 +232,11 @@ function Protocol:_cmd_impl( cmd, data , wait)
 		to = self._print_timeout
 	end
 	if not wait then
-		self._timeout:start(self._timeout_cb,to,0)
+		self._timeout:start(function()
+			self:_on_timeout()
+		end,to,0)
 	else
-		print('wait cmd')
+		log.info('wait cmd')
 	end
 end
 
@@ -320,7 +323,7 @@ end
 
 function Protocol:wait(  )
 	while not self:is_ready() do
-		llae.sleep(100)
+		async.pause(100)
 	end
 end
 

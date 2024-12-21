@@ -1,96 +1,76 @@
 #ifndef _CLIPPER_UV_H_INCLUDED_
 #define _CLIPPER_UV_H_INCLUDED_
 
-#include "uv_req_holder.h"
+#include <meta/object.h>
+#include <common/intrusive_ptr.h>
+#include <lua/state.h>
 #include "clipperlib/clipper.h"
 #include "clipperlib/clipper_offset.h"
-#include "lua_holder.h"
-#include "work.h"
 
-class ClipperPath: public RefCounter {
+
+class ClipperPath: public meta::object {
+	META_OBJECT
 private:
 	clipperlib::Path m_path;
 public:
 	ClipperPath();
 	~ClipperPath();
-	static int lnew(lua_State* L);
-	void push(lua_State* L);
-	void clear(lua_State* L);
-	void add_point(lua_State* L,lua_Integer x,lua_Integer y);
-	static int get_point(lua_State* L);
-	static int import(lua_State* L);
-	static int do_export(lua_State* L);
-	static int nearest_point(lua_State* L);
-	lua_Integer size(lua_State* L) { return m_path.size(); }
+	static lua::multiret lnew(lua::state& l);
+	static void lbind(lua::state& l);
+
+	void clear();
+	void add_point(lua_Integer x,lua_Integer y);
+	lua::multiret get_point(lua::state& l,lua_Integer idx);
+	static lua::multiret import(lua::state& l);
+	lua::multiret do_export(lua::state& l);
+	lua::multiret nearest_point(lua::state& l);
+	lua_Integer size() const { return m_path.size(); }
 	void swap(clipperlib::Path& p) { m_path.swap(p); }
 	clipperlib::Path& get() { return m_path; }
+	lua::multiret _tostring(lua::state& l);
 };
-typedef Ref<ClipperPath> ClipperPathRef;
+typedef common::intrusive_ptr<ClipperPath> ClipperPathPtr;
 
-class Clipper : public RefCounter {
+class Clipper : public meta::object {
+	META_OBJECT
 private:
 	clipperlib::Clipper m_clipper;
 public:
 	Clipper();
 	~Clipper();
-	static int lnew(lua_State* L);
-	void push(lua_State* L);
+	static lua::multiret lnew(lua::state& l);
+	static void lbind(lua::state& l);
 
-	void clear(lua_State* L);
-	void add_path(lua_State* L,const ClipperPathRef& path);
-	static int add_paths(lua_State* L);
-	static int execute(lua_State* L);
+	void clear();
+	void add_path(lua::state& l,const ClipperPathPtr& path);
+	void add_paths(lua::state& l);
+	lua::multiret execute(lua::state& l);
 
 	clipperlib::Clipper& get() { return m_clipper; }
 };
-typedef Ref<Clipper> ClipperRef;
+typedef common::intrusive_ptr<Clipper> ClipperPtr;
 
-class ClipperOffset : public RefCounter {
+class ClipperOffset : public meta::object {
+	META_OBJECT
 private:
 	clipperlib::ClipperOffset m_clipper;
 public:
 	ClipperOffset();
 	~ClipperOffset();
 
-	static int lnew(lua_State* L);
-	void push(lua_State* L);
+	static lua::multiret lnew(lua::state& l);
+	static void lbind(lua::state& l);
 
-	void clear(lua_State* L);
-	void add_path(lua_State* L,const ClipperPathRef& path);
-	static int add_paths(lua_State* L);
-	static int execute(lua_State* L);
+	void clear();
+	void add_path(lua::state& l,const ClipperPathPtr& path);
+	void add_paths(lua::state& l);
+	lua::multiret execute(lua::state& l);
 
 	clipperlib::ClipperOffset& get() { return m_clipper; }
 };
-typedef Ref<ClipperOffset> ClipperOffsetRef;
+typedef common::intrusive_ptr<ClipperOffset> ClipperOffsetPtr;
 
 
-class ClipperExecuteReq : public ThreadWorkReq {
-private:
-	ClipperRef m_clipper;
-	clipperlib::ClipType m_type;
-	clipperlib::FillRule m_fr;
-	clipperlib::Paths m_solution_closed;
-	clipperlib::Paths m_solution_opened;
-	bool m_result;
-	virtual void on_work();
-	virtual void on_after_work(int status);
-public:
-	int start(lua_State* L);
-};
-typedef Ref<ClipperExecuteReq> ClipperExecuteReqRef;
 
-
-class ClipperOffsetExecuteReq : public ThreadWorkReq {
-private:
-	ClipperOffsetRef m_clipper;
-	double m_delta;
-	clipperlib::Paths m_solution;
-	virtual void on_work();
-	virtual void on_after_work(int status);
-public:
-	int start(lua_State* L);
-};
-typedef Ref<ClipperOffsetExecuteReq> ClipperOffsetExecuteReqRef;
 
 #endif /*_CLIPPER_UV_H_INCLUDED_*/

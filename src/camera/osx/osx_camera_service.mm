@@ -162,6 +162,9 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 @end
 
 
+lua::multiret VideoSource::lnew(lua::state& l) {
+	return push(l,new OSXCameraService());
+}
 
 OSXCameraService::OSXCameraService() {
 	m_service = [[CameraService alloc] initWithSource:this];
@@ -171,7 +174,7 @@ OSXCameraService::~OSXCameraService() {
 	[m_service release];
 }
 
-bool OSXCameraService::open(lua_State* L) {
+bool OSXCameraService::open(lua::state& l) {
 	return [m_service open];
 }
 
@@ -187,10 +190,5 @@ void OSXCameraService::stop() {
 	[m_service stop];
 }
 
-
-int VideoSource::lnew(lua_State* L) {
-	(new OSXCameraService())->push(L);
-	return 1;
-}
 
 

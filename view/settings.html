@@ -1,0 +1,120 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css" >
+    <link rel="stylesheet" href="/css/styles.css" >
+
+    <title>BlackBox - settings</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
+      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="/">BlackBox</a>
+      <ul class="navbar-nav px-3">
+        <li class="nav-item text-nowrap">
+          <a class="nav-link" href="/"><span data-feather="x-circle"></span></a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <%- include('fragments/sidebar',...) %>
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+          
+          <form method="post">
+          <!-- settings page <%= page %> -->
+          <%
+            for _,v in ipairs(settings:get_page(page)) do
+          %>
+              <div class="form-group">
+                <%- settings:format_input(v) %>
+              </div>
+          <%
+            end
+          %>
+              <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+          
+        </main>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="/js/jquery-3.3.1.slim.min.js" ></script>
+    <script src="/js/popper.min.js" ></script>
+    <script src="/js/bootstrap.min.js" ></script>
+
+    <script src="/js/feather.min.js"></script>
+
+    <script>
+      feather.replace()
+
+      $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+      })
+      $(function () {
+        $('[extra-data-toggle="tooltip"]').tooltip()
+      })
+    </script>
+
+    <script src="/js/application.js"></script>
+
+    
+    <script>
+    $('.list-edit-append .btn').click(function(el) {
+      let list_name = $(this).data('list-name')
+      console.log('append clicked:' + list_name)
+      fetch('/api/settings_add_list_element',{
+          method:'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body:JSON.stringify({list_name:list_name})
+        })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(function(data) {
+           location.reload();
+        }).catch(function(error) {
+            bootstrap_alert.error(
+                '<p>Failed add element</p>'+
+                '<hr><p class="mb-0">' + error + '</p>'
+              );
+        })
+    });
+
+    $('.list-edit-remove .btn').click(function(el) {
+      let list_name = $(this).data('list-name')
+      let idx = $(this).data('item-idx') * 1;
+      console.log('remove clicked:' + list_name + ' idx:' + idx)
+      fetch('/api/settings_remove_list_element',{
+          method:'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body:JSON.stringify({list_name:list_name,idx:idx})
+        })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(function(data) {
+           location.reload();
+        }).catch(function(error) {
+            bootstrap_alert.error(
+                '<p>Failed add element</p>'+
+                '<hr><p class="mb-0">' + error + '</p>'
+              );
+        })
+    });
+    </script>
+  </body>
+</html>

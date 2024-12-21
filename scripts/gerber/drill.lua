@@ -13,7 +13,7 @@ function Dril:_init( )
 	self._tools = {}
 	self.points = {}
 	self._scale = 1.0
-	self._point_scale = 1.0
+	self._point_scale = 1.0/10000
 end
 
 
@@ -29,11 +29,14 @@ end
 
 
 function Dril:on_block( block )
-	local data = string.match(block,'^(.*);.*$')
+	local data,comment = string.match(block,'^(.*);(.*)$')
 	if data then
 		block = data
 	end
 	if block == '' then
+		if comment and comment ~= '' then
+			self:process_comment(comment)
+		end
 		return
 	end
 
@@ -50,10 +53,18 @@ function Dril:on_block( block )
 		elseif letter == 'G' then
 			self:process_G_code(tonumber(code))
 		elseif letter == 'T' then
-			self._active_tool = self._tools[code]
-			if not self._active_tool and code~='0' then
+			self._active_tool = self._tools[code] or self._tools[tonumber(code)]
+			if not self._active_tool and code~='0' and code~='00' then
 				error('unknown tool ' .. code)
 			end
+		elseif letter == 'X' then
+			local x = self:parse_point(code)
+			local y = self.points[#self.points].y
+			table.insert(self.points,{x=x,y=y,tool=self._active_tool})
+		elseif letter == 'Y' then
+			local y = self:parse_point(code)
+			local x = self.points[#self.points].x
+			table.insert(self.points,{x=x,y=y,tool=self._active_tool})
 		else
 			error('invalid command')
 		end
@@ -62,25 +73,27 @@ function Dril:on_block( block )
 	
 	local x,y = string.match(block,'^X([%+%-]?%d+)Y([%+%-]?%d+)$')
 	if x then
-		x = math.tointeger(x) * self._scale
-		y = math.tointeger(y) * self._scale
+		x = self:parse_point(x)
+		y = self:parse_point(y)
 		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
 		return
 	end
 
 	local x,y = string.match(block,'^X([%+%-]?[%d%.]+)Y([%+%-]?[%d%.]+)$')
 	if x then
-		x = tonumber(x) * self._scale
-		y = tonumber(y) * self._scale
+		x = self:parse_point(x)
+		y = self:parse_point(y)
 		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
 		return
 	end
 
 	local x1,y1,x2,y2 = string.match(block,'^X([%+%-]?%d+)Y([%+%-]?%d+)G85X([%+%-]?%d+)Y([%+%-]?%d+)$')
 	if x1 then
-		x = math.tointeger(x1) * self._scale
-		y = math.tointeger(y1) * self._scale
-		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
+		x = self:parse_point(x1) 
+		y = self:parse_point(y1) 
+		x2 = self:parse_point(x2)
+		y2 = self:parse_point(y2)
+		table.insert(self.points,{x=x,y=y,tool=self._active_tool,x2=x2,y2=y2})
 		return
 	end
 	
@@ -97,6 +110,32 @@ function Dril:parse( line )
 	end
 end
 
+function Dril:process_comment( block )
+	if not self._header then
+		return
+	end
+	local k,v = string.match(block,'^([%u_]+)=(.+)$')
+	if k then
+		print('comment:',k,v)
+		if k=='FILE_FORMAT' then
+			local p,d = string.match(v,'(%d):(%d)')
+			if p then
+				self._point_width = math.tointeger(p) + math.tointeger(d)
+				self._point_scale = 1.0 / math.pow(10,math.tointeger(d))
+				print('scale from comment:',p,self._point_scale)
+				self._point_scale_from_comment = true
+			end
+		end
+	end
+end
+
+function Dril:parse_point( str_val )
+	if self._point_mode == 'LZ' then
+		str_val = str_val .. string.rep('0',self._point_width - #str_val)
+	end
+	return math.tointeger(str_val) * self._scale
+end
+
 function Dril:process_header( block )
 	if block == '%' then
 		self._header = false
@@ -104,11 +143,21 @@ function Dril:process_header( block )
 		local a,b,c = string.match(block,'^(%u+),(%u+),?(.*)')
 		if a then
 			if a == 'INCH' then
-				local fmt = string.match(c,'0+%.(0+)')
-				if not fmt then
-					error('invalid format ' .. c)
+				if c and c ~= '' then
+					local fmt = string.match(c,'0+%.(0+)')
+					if not fmt then
+						error('invalid format ' .. c)
+					end
+					self._point_scale = 1.0 / math.pow(10,#fmt)
+				elseif b == 'LZ' then
+					if not self._point_scale_from_comment then
+						error( 'not found point scale' )
+					end
+					self._point_mode = 'LZ'
+					print('set point mode',b)
+				else
+					error('invalid format ' .. a .. b .. c)
 				end
-				self._point_scale = 1.0 / math.pow(10,#fmt)
 			
 				self:set_inches()
 				return
@@ -141,20 +190,16 @@ function Dril:process_header( block )
 			end
 			error('unknown header command ' .. a)
 		end
-		local n,c,d = string.match(block,'^T(%d+)(%u)(.+)$')
+		local n,d = string.match(block,'^T(%d+).*C([%d%.]+)$')
 		if n then
-			self._tools[n] = self:parse_tool(c,d)
+			print('tool',n,d)
+			local tool = {d=tonumber(d)*self._mm_scale}
+			self._tools[n] = tool
+			self._tools[tonumber(n)]=tool
 			return 
 		end
+		
 		error('unknown header command ' .. block)
-	end
-end
-
-function Dril:parse_tool( c, d )
-	if c == 'C' then
-		return {d=tonumber(d)*self._mm_scale}
-	else
-		error('unexpected tool definition ' .. c)
 	end
 end
 

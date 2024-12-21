@@ -1,4 +1,6 @@
 local class = require 'llae.class'
+local log = require 'llae.log'
+local async = require 'llae.async'
 
 local PCB = class(nil,'printer.PCB')
 
@@ -8,6 +10,7 @@ local SvgGenerator = require 'svg.generator'
 local Geometry = require 'geom.geometry'
 local DrilParser = require 'gerber.drill'
 local Protocol = require 'printer.protocol'
+local rasterizator = require 'rasterizator'
 
 PCB.root = application.config.files
 
@@ -46,6 +49,9 @@ function PCB:add_gerber_layer( polygons , name )
 	for _,v in ipairs(polygons) do
 		bounds:extend_points(v)
 	end
+	if bounds:is_empty() then
+		log.error('empty layer',name)
+	end
 	local fname = string.match(name,'.+/(.+)')
 	if fname then
 		name = fname
@@ -71,7 +77,12 @@ end
 function PCB:add_drill_layer( points, name )
 	local bounds = Bounds.new()
 	for _,p in ipairs(points) do
-		bounds:extend(p.x,p.y)
+		bounds:extend(p.x-self._config.drill_kern_or,p.y-self._config.drill_kern_or)
+		bounds:extend(p.x+self._config.drill_kern_or,p.y+self._config.drill_kern_or)
+		if p.x2 then
+			bounds:extend(p.x2-self._config.drill_kern_or,p.y2-self._config.drill_kern_or)
+			bounds:extend(p.x2+self._config.drill_kern_or,p.y2+self._config.drill_kern_or)
+		end
 	end
 	local fname = string.match(name,'.+/(.+)')
 	if fname then
@@ -95,7 +106,7 @@ function PCB:open_gerber( file )
 	local state = application.printer:start_state('pcb_processing')
 	local sself = self
 
-	local coro = coroutine.create(function()
+	async.run(function()
 		local r,err = xpcall(function()
 			for l in f:lines() do
 				p:parse(l)
@@ -118,7 +129,6 @@ function PCB:open_gerber( file )
 		collectgarbage('collect')
 	end)
 
-	assert(coroutine.resume(coro))
 
 end
 
@@ -132,7 +142,7 @@ function PCB:open_drill( file )
 	local state = application.printer:start_state('pcb_processing')
 	local sself = self
 
-	local coro = coroutine.create(function()
+	async.run(function()
 		local r,err = xpcall(function()
 			for l in f:lines() do
 				p:parse(l)
@@ -157,7 +167,7 @@ function PCB:open_drill( file )
 		collectgarbage('collect')
 	end)
 
-	assert(coroutine.resume(coro))
+	
 
 end
 
@@ -235,7 +245,7 @@ function PCB:union_layer( canvas , g )
 end
 
 function PCB:build_print(  )
-	print('PCB build_print')
+	log.info('PCB build_print')
 	
 	
 	
@@ -305,12 +315,23 @@ function PCB:build_print(  )
 				local g = Geometry.new{}
 				local go = Geometry.new{}
 				for _,p in ipairs(self:flip_points(layer.points)) do
-					local pg = Geometry.new_circle(p.x*resolution,
-							p.y*resolution,self._config.drill_kern_r*resolution)
-					g:union(pg)
-					local po = Geometry.new_circle(p.x*resolution,
-							p.y*resolution,self._config.drill_kern_or*resolution)
-					go:union(po)
+					if p.x2 then
+						local path = {
+							{p.x*resolution, p.y*resolution},
+							{p.x2*resolution, p.y2*resolution}
+						}
+						local pg = Geometry.new_path_buffer(path,self._config.drill_kern_r*resolution*2)
+						g:union(pg)
+						local po = Geometry.new_path_buffer(path,self._config.drill_kern_or*resolution*2)
+						go:union(po)
+					else
+						local pg = Geometry.new_circle(p.x*resolution,
+								p.y*resolution,self._config.drill_kern_r*resolution)
+						g:union(pg)
+						local po = Geometry.new_circle(p.x*resolution,
+								p.y*resolution,self._config.drill_kern_or*resolution)
+						go:union(po)
+					end
 				end
 				self:union_layer(canvas,go)
 				self:difference_layer(canvas,g)
@@ -410,7 +431,7 @@ function PCB:update( config )
 	local sself = self
 	local state = application.printer:start_state('pcb_processing')
 
-	local coro = coroutine.create(function()
+	async.run(function()
 		local r,err = pcall(function()
 			sself:build_print()
 			print('PCB update complete')
@@ -423,7 +444,6 @@ function PCB:update( config )
 		collectgarbage('collect')
 	end)
 
-	coroutine.resume(coro)
 end
 
 
@@ -511,7 +531,7 @@ function PCB:process_print( protocol )
 	self._pos_y = (self._rasterizator:get_y_pos() - self._rasterizator:get_y_start()) * application.printer:get_resolution_y()
 	local pos_y = math.ceil(self._pos_y)
 	local dy = pos_y -  self._prev_y
-	print('Y:',dy)
+	log.debug('Y:',dy)
 	protocol:print(start,speed, dy,pl)
 	self._prev_y = pos_y
 end
@@ -520,7 +540,7 @@ function PCB:get_progress(  )
 end
 
 function PCB:setup_rasterizator(  )
-	self._rasterizator = app.newRasterizator()
+	self._rasterizator = rasterizator.Rasterizator.new()
 	local res = application.printer:get_resolution_x()
 	self._rasterizator:set_scale(res,
 		self._config.y_resolution)
@@ -541,11 +561,10 @@ function PCB:prepare_preview(  )
 
 	self:setup_rasterizator()
 
-	self._write = app.newRasterizatorWrite()
-	print('paths added,start')
+	self._write = rasterizator.RasterizatorWrite.new()
+	log.info('paths added,start')
 	self._rasterizator:start()
-	print('started')
-	self._write:open( self.root .. '/rasterizator.png')
+	log.info('started')
 	self._write:set_size(self._rasterizator:get_width(),self._rasterizator:get_height())
 	
 end
@@ -555,7 +574,7 @@ function PCB:process_preview(  )
 	local l = self._rasterizator:get_line()
 	self._write:write(l)
 	if self._rasterizator:complete() then
-		self._write:close()
+		self._preview = self._write:end_write()
 	end
 end
 

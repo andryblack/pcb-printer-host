@@ -1,52 +1,50 @@
 #include "rasterizator.h"
+#include "rasterizator_write.h"
+#include <uv/luv.h>
+#include <uv/work.h>
+#include <lua/bind.h>
 #include <algorithm>
 #include <iostream>
 
-static const char* Rasterizator_mt = "Rasterizator";
+META_OBJECT_INFO(Rasterizator,meta::object)
 
 Rasterizator::Rasterizator() : m_x_scale(1.0),m_y_scale(1.0),m_bounds(INT64_MAX, INT64_MAX, INT64_MIN, INT64_MIN) {
 	m_num_steps = 32;
 }
 
-void Rasterizator::push(lua_State* L) {
-	new (lua_newuserdata(L,sizeof(RasterizatorRef))) RasterizatorRef(this);
-	luaL_setmetatable(L,Rasterizator_mt);
+lua::multiret Rasterizator::lnew(lua::state& l) {
+	lua::push(l,RasterizatorPtr(new Rasterizator()));
+	return {1};
 }
-int Rasterizator::lnew(lua_State* L) {
-	(new Rasterizator())->push(L);
-	return 1;
-}
-int Rasterizator::add_paths(lua_State* L) {
-	RasterizatorRef self = RasterizatorRef::get_ref(L,1);
-	luaL_checktype(L,2,LUA_TTABLE);
-	lua_Integer len = luaL_len(L,2);
-	self->m_paths.reserve(self->m_paths.size()+len);
+void Rasterizator::add_paths(lua::state& l) {
+	l.checktype(2,lua::value_type::table);
+	lua_Integer len = l.len(2);
+	m_paths.reserve(m_paths.size()+len);
 	for (lua_Integer p=1;p<=len;++p) {
-		lua_geti(L,2,p);
+		l.geti(2,p);
 		
-		self->m_paths.push_back(clipperlib::Path());
-		clipperlib::Path& path(self->m_paths.back());
+		m_paths.push_back(clipperlib::Path());
+		clipperlib::Path& path(m_paths.back());
 
-		luaL_checktype(L,-1,LUA_TTABLE);
-		lua_Integer plen = luaL_len(L,-1);
+		l.checktype(-1,lua::value_type::table);
+		lua_Integer plen = l.len(-1);
 		path.reserve(plen);
 		for (lua_Integer i=1;i<=plen;++i) {
-			lua_geti(L,-1,i);
-			luaL_checktype(L,-1,LUA_TTABLE);
-			lua_geti(L,-1,1);
-			lua_geti(L,-2,2);
-			lua_Number x = lua_tonumber(L,-2);
-			lua_Number y = lua_tonumber(L,-1);
-			geom::V v = self->m_t.transform(x,y);
-			lua_pop(L,3);
-			clipperlib::Point64 pnt(v.x*self->m_x_scale*1024,v.y*self->m_y_scale*1024);
+			l.geti(-1,i);
+			l.checktype(-1,lua::value_type::table);
+			l.geti(-1,1);
+			l.geti(-2,2);
+			lua_Number x = l.tonumber(-2);
+			lua_Number y = l.tonumber(-1);
+			geom::V v = m_t.transform(x,y);
+			l.pop(3);
+			clipperlib::Point64 pnt(v.x*m_x_scale*1024,v.y*m_y_scale*1024);
 			path.push_back(pnt);
 		}
 		
-		self->m_clipper.AddPath(path,clipperlib::ptSubject,false);
-		lua_pop(L,1);
+		m_clipper.AddPath(path,clipperlib::ptSubject,false);
+		l.pop(1);
 	}
-	return 0;
 }
 
 void Rasterizator::set_scale(double xs,double ys) {
@@ -134,61 +132,93 @@ void Rasterizator::do_process() {
 	--m_crnt_steps;
 }
 
-void Rasterizator::push_line(lua_State* L) {
-	lua_pushlstring(L,reinterpret_cast<const char*>(m_line.data()),m_line.size());
+void Rasterizator::push_line(lua::state& l) {
+	l.pushlstring(reinterpret_cast<const char*>(m_line.data()),m_line.size());
 }
 
-void Rasterizator::start(lua_State* L) {
-	if (!lua_isyieldable(L)) {
-		luaL_error(L,"Rasterizator::start must call on thread");
+class Rasterizator::RasterizatorWork : public uv::lua_cont_work {
+public:
+protected:
+	RasterizatorPtr m_rast;
+	RasterizatorWork( RasterizatorPtr&& rast) : m_rast(std::move(rast)) {
+
+	}
+	virtual int resume_args(lua::state& l,int status) {
+		if (status != 0) {
+			l.pushnil();
+            uv::push_error(l,status);
+            return 2;
+		}
+		l.pushboolean(true);
+		return 1;
+	}
+};
+
+class Rasterizator::RasterizatorStartWork : public Rasterizator::RasterizatorWork {
+protected:
+	virtual void on_work() override {
+		m_rast->do_start();
+	}
+public:
+	RasterizatorStartWork( RasterizatorPtr&& rast ) : RasterizatorWork(std::move(rast)) {
+
+	}
+};
+
+class Rasterizator::RasterizatorProcessWork : public Rasterizator::RasterizatorWork {
+protected:
+	virtual void on_work() override {
+		m_rast->do_process();
+	}
+public:
+	RasterizatorProcessWork( RasterizatorPtr&& rast ) : RasterizatorWork(std::move(rast)) {
+
+	}
+};
+
+lua::multiret Rasterizator::start(lua::state& l) {
+	if (!l.isyieldable()) {
+		l.error("Rasterizator::start async");
 	}
 	{
-		RasterizatorStartWorkRef req(new RasterizatorStartWork(RasterizatorRef(this)));
-		lua_pushthread(L);
-		int res = req->start(L);
-		lua_llae_handle_error(L,"Rasterizator::start",res);
+
+		common::intrusive_ptr<RasterizatorStartWork> req{new RasterizatorStartWork(RasterizatorPtr(this))};
+
+		int r = req->queue_work_thread(l);
+		if (r < 0) {
+			req->reset(l);
+			l.pushnil();
+			uv::push_error(l,r);
+			return {2};
+		} 
 	}
-	lua_yield(L,0);
+	l.yield(0);
+	return {1};
 }
 
-void Rasterizator::process(lua_State* L) {
-	if (!lua_isyieldable(L)) {
-		luaL_error(L,"Rasterizator::process must call on thread");
+lua::multiret Rasterizator::process(lua::state& l) {
+	if (!l.isyieldable()) {
+		l.error("Rasterizator::start async");
 	}
 	{
-		RasterizatorProcessWorkRef req(new RasterizatorProcessWork(RasterizatorRef(this)));
-		lua_pushthread(L);
-		int res = req->start(L);
-		lua_llae_handle_error(L,"Rasterizator::process",res);
+
+		common::intrusive_ptr<RasterizatorProcessWork> req{new RasterizatorProcessWork(RasterizatorPtr(this))};
+
+		int r = req->queue_work_thread(l);
+		if (r < 0) {
+			req->reset(l);
+			l.pushnil();
+			uv::push_error(l,r);
+			return {2};
+		} 
 	}
-	lua_yield(L,0);
+	l.yield(0);
+	return {1};
 }
 
-RasterizatorWork::RasterizatorWork(const RasterizatorRef& rast) : m_rast(rast) {
-
-}
-RasterizatorWork::~RasterizatorWork() {
-
-}
-
-RasterizatorStartWork::RasterizatorStartWork(const RasterizatorRef& rast) : RasterizatorWork(rast) {
-
-}
-
-void RasterizatorStartWork::on_work() {
-	printf("RasterizatorStartWork::on_work >>> \n");
-	m_rast->do_start();
-	printf("RasterizatorStartWork::on_work <<< \n");
-}
-
-RasterizatorProcessWork::RasterizatorProcessWork(const RasterizatorRef& rast) : RasterizatorWork(rast) {
-
-}
-
-int Rasterizator::get_line(lua_State* L) {
-	RasterizatorRef self = RasterizatorRef::get_ref(L,1);
-	self->push_line(L);
-	return 1;
+lua::multiret Rasterizator::get_line(lua::state& l) {
+	push_line(l);
+	return {1};
 }
 
 static uint8_t swap_bits(uint8_t v) {
@@ -201,7 +231,7 @@ static uint8_t swap_bits(uint8_t v) {
 	}
 	return r;
 }
-void Rasterizator::inverse(lua_State*L) {
+void Rasterizator::inverse(lua::state& l) {
 	size_t len = m_line.size() / 2;
 	for (size_t i=0;i<len;++i) {
 		uint8_t r = m_line[m_line.size()-i-1];
@@ -213,39 +243,37 @@ void Rasterizator::inverse(lua_State*L) {
 		m_line[len] = swap_bits(m_line[len]);
 	}
 }
-int Rasterizator::setup_transform(lua_State* L) {
-	RasterizatorRef self = RasterizatorRef::get_ref(L,1);
-
-	luaL_checktype(L,2,LUA_TTABLE);
-	luaL_checktype(L,3,LUA_TTABLE);
+void Rasterizator::setup_transform(lua::state& l) {
+	l.checktype(2,lua::value_type::table);
+	l.checktype(3,lua::value_type::table);
 	geom::V p1;
-	lua_getfield(L,2,"x");
-	p1.x = lua_tonumber(L,-1);
-	lua_pop(L,1);
-	lua_getfield(L,2,"y");
-	p1.y = lua_tonumber(L,-1);
-	lua_pop(L,1);
+	l.getfield(2,"x");
+	p1.x = l.tonumber(-1);
+	l.pop(1);
+	l.getfield(2,"y");
+	p1.y = l.tonumber(-1);
+	l.pop(1);
 	geom::V pp1;
-	lua_getfield(L,2,"px");
-	pp1.x = lua_tonumber(L,-1);
-	lua_pop(L,1);
-	lua_getfield(L,2,"py");
-	pp1.y = lua_tonumber(L,-1);
-	lua_pop(L,1);
+	l.getfield(2,"px");
+	pp1.x = l.tonumber(-1);
+	l.pop(1);
+	l.getfield(2,"py");
+	pp1.y = l.tonumber(-1);
+	l.pop(1);
 	geom::V p2;
-	lua_getfield(L,3,"x");
-	p2.x = lua_tonumber(L,-1);
-	lua_pop(L,1);
-	lua_getfield(L,3,"y");
-	p2.y = lua_tonumber(L,-1);
-	lua_pop(L,1);
+	l.getfield(3,"x");
+	p2.x = l.tonumber(-1);
+	l.pop(1);
+	l.getfield(3,"y");
+	p2.y = l.tonumber(-1);
+	l.pop(1);
 	geom::V pp2;
-	lua_getfield(L,3,"px");
-	pp2.x = lua_tonumber(L,-1);
-	lua_pop(L,1);
-	lua_getfield(L,3,"py");
-	pp2.y = lua_tonumber(L,-1);
-	lua_pop(L,1);
+	l.getfield(3,"px");
+	pp2.x = l.tonumber(-1);
+	l.pop(1);
+	l.getfield(3,"py");
+	pp2.y = l.tonumber(-1);
+	l.pop(1);
 
 	std::cout << "p1:" << p1.x << ", " << p1.y << std::endl;
 	std::cout << "p2:" << p2.x << ", " << p2.y << std::endl;
@@ -265,36 +293,38 @@ int Rasterizator::setup_transform(lua_State* L) {
 
 	std::cout << "v: " << t.v.x << "," << t.v.y << std::endl;
 	std::cout << "m: " << t.m.m[0] << "," << t.m.m[1] << "," << t.m.m[2] << "," << t.m.m[3] << std::endl;
-	self->m_t = t;
-	return 0;
+	m_t = t;
+	
 }
 
-void RasterizatorProcessWork::on_work() {
-	m_rast->do_process();
+void Rasterizator::lbind(lua::state& l) {
+	lua::bind::function(l,"new",&Rasterizator::lnew);
+	lua::bind::function(l,"set_scale",&Rasterizator::set_scale);
+	lua::bind::function(l,"add_paths",&Rasterizator::add_paths);
+	lua::bind::function(l,"start",&Rasterizator::start);
+	lua::bind::function(l,"process",&Rasterizator::process);
+	lua::bind::function(l,"complete",&Rasterizator::complete);
+	lua::bind::function(l,"get_y_pos",&Rasterizator::get_y_pos);
+	lua::bind::function(l,"get_y_start",&Rasterizator::get_y_start);
+	lua::bind::function(l,"get_y_len",&Rasterizator::get_y_len);
+	lua::bind::function(l,"get_line",&Rasterizator::get_line);
+	lua::bind::function(l,"get_width",&Rasterizator::get_width);
+	lua::bind::function(l,"get_height",&Rasterizator::get_height);
+	lua::bind::function(l,"get_left",&Rasterizator::get_left);
+	lua::bind::function(l,"inverse",&Rasterizator::inverse);
+	lua::bind::function(l,"setup_transform",&Rasterizator::setup_transform);
 }
 
-int Rasterizator::lbind(lua_State* L) {
-	luaL_newmetatable(L,Rasterizator_mt);
-	lua_newtable(L);
-	luabind::bind(L,"new",&Rasterizator::lnew);
-	luabind::bind(L,"set_scale",&Rasterizator::set_scale);
-	luabind::bind(L,"add_paths",&Rasterizator::add_paths);
-	luabind::bind(L,"start",&Rasterizator::start);
-	luabind::bind(L,"process",&Rasterizator::process);
-	luabind::bind(L,"complete",&Rasterizator::complete);
-	luabind::bind(L,"get_y_pos",&Rasterizator::get_y_pos);
-	luabind::bind(L,"get_y_start",&Rasterizator::get_y_start);
-	luabind::bind(L,"get_y_len",&Rasterizator::get_y_len);
-	luabind::bind(L,"get_line",&Rasterizator::get_line);
-	luabind::bind(L,"get_width",&Rasterizator::get_width);
-	luabind::bind(L,"get_height",&Rasterizator::get_height);
-	luabind::bind(L,"get_left",&Rasterizator::get_left);
-	luabind::bind(L,"inverse",&Rasterizator::inverse);
-	luabind::bind(L,"setup_transform",&Rasterizator::setup_transform);
-	lua_setfield(L,-2,"__index");
-	lua_pushcfunction(L,&RasterizatorRef::gc);
-	lua_setfield(L,-2,"__gc");
-	lua_pop(L,1);
-	return 0;
-}
+int luaopen_rasterizator(lua_State* L) {
+	lua::state l(L);
+	lua::bind::object<Rasterizator>::register_metatable(l,&Rasterizator::lbind);
+	lua::bind::object<RasterizatorWrite>::register_metatable(l,&RasterizatorWrite::lbind);
+	l.createtable();
+	
 
+	lua::bind::object<Rasterizator>::get_metatable(l);
+	l.setfield(-2,"Rasterizator");
+	lua::bind::object<RasterizatorWrite>::get_metatable(l);
+	l.setfield(-2,"RasterizatorWrite");
+	return 1;
+}

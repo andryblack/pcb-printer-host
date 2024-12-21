@@ -1,4 +1,5 @@
 local class = require 'llae.class'
+local log = require 'llae.log'
 
 local Contour = require 'geom.contour'
 
@@ -20,6 +21,8 @@ function Region:flush_contour(  )
 				error('invalid contour')
 			end
 		end
+		--log.info('Region:flush_contour')
+		--self._contour:dump()
 		local g = self._contour:build_polygon()
 		if self._geometry then
 			self._geometry:union(g,true)
@@ -35,19 +38,21 @@ function Region:finish(  )
 	if not self._geometry then
 		error('empty region')
 	end
+	self._geometry:flush()
+	return self._geometry
 end
 
 function Region:move( x , y )
 	self:flush_contour()
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
 	self._contour = Contour.new()
-	--print('Region:move',self._current_pos[1],self._current_pos[2])
+	--log.info('Region:move',self._current_pos[1],self._current_pos[2])
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2])
 end
 
 function Region:draw( x, y , interpolation )
 	self._current_pos = { x or self._current_pos[1],y or self._current_pos[2] }
-	--print('Region:draw',self._current_pos[1],self._current_pos[2])
+	--log.info('Region:draw',self._current_pos[1],self._current_pos[2])
 	self._contour:add_segment(self._current_pos[1],self._current_pos[2], interpolation)
 end
 

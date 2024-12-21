@@ -1,4 +1,8 @@
-local printer = {}
+local class = require 'llae.class'
+local log = require 'llae.log'
+local async = require 'llae.async'
+
+local printer = class()
 
 printer.settings = require 'printer.settings_mgmt'
 
@@ -17,7 +21,7 @@ function printer:init(  )
 	self._settings_file = application.config.files .. '/.printer/settings.json'
 	self._state = state_disconnected
 	self._speed_samples = {}
-	self._auto_connect = 10
+	self._auto_connect = 5
 
 	self._position_x = nil
 	self._position_y = nil
@@ -54,7 +58,8 @@ function printer:init(  )
 			print('SPEED',sample.dt,sample.pwm)
 		end
 	end
-	self._connection = Connection.new( connection_delegate )
+	self._connection = Connection.create( self.settings.device , connection_delegate )
+	self._connection:configure_baud(self.settings.baudrate)
 	self._protocol = Protocol.new(protocol_delegate)
 	connection_delegate._protocol = self._protocol
 	protocol_delegate._connection = self._connection
@@ -157,9 +162,14 @@ end
 
 function printer:connect(  )
 	self._protocol:reset()
-	if self._connection:open(self.settings.device,self.settings.baudrate) then
+	local res,err = self._connection:open()
+
+	if res then
 		self._state = state_idle
 		self:upload_settings()
+	else
+		log.error('failed open connection',err)
+		self._auto_connect = 30
 	end
 end
 
@@ -269,6 +279,7 @@ function printer:on_timer(  )
 	if self._auto_connect then
 		self._auto_connect = self._auto_connect - 1
 		if self._auto_connect < 0 then
+			log.info('auto connect')
 			self._auto_connect = nil
 			self:connect()
 			return
@@ -327,11 +338,11 @@ function printer:preview(  )
 	local sself = self
 	self._progress = 0
 
-	local coro = coroutine.create(function()
+	async.run(function()
 		local r,err = xpcall(function()
-			print('start prepare preview')
+			log.info('start prepare preview')
 			sself.pcb:prepare_preview()
-			print('complete prepare preview')
+			log.info('complete prepare preview')
 			while (not sself.pcb:print_complete())  do
 				if (self._state == state_printing) then
 					sself.pcb:process_preview(  )
@@ -343,18 +354,17 @@ function printer:preview(  )
 				local crnt,all = sself.pcb:get_progress()
 				self._progress = crnt / all
 			end
-			print('complete process preview')
+			log.info('complete process preview')
 			sself:end_state(state_printing,state)
 		end,debug.traceback)
 		
 		if not r then
 			sself:end_state(state_printing,state)
-			print('PCB processing error',err)
+			log.info('PCB processing error',err)
 		end
 		collectgarbage('collect')
 	end)
 
-	assert(coroutine.resume(coro))
 end
 
 function printer:calibrate( data  )

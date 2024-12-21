@@ -1,4 +1,7 @@
+local log = require 'llae.log'
 local pcb = {}
+
+pcb.prefix = '/api/'
 
 local type_to_icon = {
 	['layer'] = 'cpu',
@@ -53,10 +56,10 @@ function pcb:open_gerber( file )
 		application.printer.pcb:open_gerber(file)
 	end)
 	if res then
-		print('gerber loaded')
+		log.info('gerber loaded')
 		return {status='ok',redirect='/pcb'}
 	end
-	print('failed open gerber:', err)
+	log.error('failed open gerber:', err)
 	return {status='error',error=err}
 end
 
@@ -65,10 +68,10 @@ function pcb:open_drill( file )
 		application.printer.pcb:open_drill(file)
 	end)
 	if res then
-		print('drill loaded')
+		log.info('drill loaded')
 		return {status='ok',redirect='/pcb'}
 	end
-	print('failed open drill:', err)
+	log.error('failed open drill:', err)
 	return {status='error',error=err}
 end
 
@@ -77,10 +80,10 @@ function pcb:print(  )
 		application.printer:print()
 	end)
 	if res then
-		print('print started')
+		log.info('print started')
 		return {status='ok',redirect='/home'}
 	end
-	print('failed print gerber:', err)
+	log.error('failed print gerber:', err)
 	return {status='error',error=err}
 end
 
@@ -89,58 +92,60 @@ function pcb:preview(  )
 		application.printer:preview()
 	end)
 	if res then
-		print('preview started')
+		log.info('preview started')
 		return {status='ok'}
 	end
-	print('failed preview gerber:', err)
+	log.error('failed preview gerber:', err)
 	return {status='error',error=err}
 end
 
 
 function pcb.make_routes( server )
-	server:post('/api/open_gerber',function( request )
-    	request:write_json(pcb:open_gerber(request.file))
+	server:post('/api/open_gerber',function( request, response )
+    	response:json(pcb:open_gerber(request.query.file))
 	end)
-	server:post('/api/open_drill',function( request )
-    	request:write_json(pcb:open_drill(request.file))
+	server:post('/api/open_drill',function( request , response )
+    	response:json(pcb:open_drill(request.query.file))
 	end)
-	server:get('/api/pcb.svg',function( request )
-    	request:write_data(application.printer.pcb:get_svg(),'image/svg+xml')
+	server:get('/api/pcb.svg',function( request , response )
+    	--response:write_data(application.printer.pcb:get_svg(),'image/svg+xml')
+    	response:set_header('Content-Type','image/svg+xml')
+    	response:finish(application.printer.pcb:get_svg())
 	end)
-	server:post('/api/pcb/layers',function( request )
-		request:write_json({status='ok',layers=pcb:get_layers()})
+	server:post('/api/pcb/layers',function( request , response )
+		response:json({status='ok',layers=pcb:get_layers()})
 	end)
-	server:post('/api/pcb/remove_layer',function( request )
+	server:post('/api/pcb/remove_layer',function( request , response)
 		application.printer.pcb:remove_layer(request.json.layer)
 		local res = application.printer:get_state( )
 		res.status = 'ok'
 		res.layers = pcb:get_layers()
-		request:write_json(res)
+		response:json(res)
 	end)
-	server:post('/api/pcb/visible_layer',function( request )
+	server:post('/api/pcb/visible_layer',function( request , response)
 		application.printer.pcb:visible_layer(request.json.layer,request.json.visible)
 		local res = application.printer:get_state( )
 		res.status = 'ok'
 		res.layers = pcb:get_layers()
-		request:write_json(res)
+		response:json(res)
 	end)
-	server:post('/api/pcb/update',function( request )
+	server:post('/api/pcb/update',function( request , response)
 		application.printer.pcb:update(request.json)
 		local res = application.printer:get_state( )
 		res.status = 'ok'
-		request:write_json(res)
+		response:json(res)
 	end)
-	server:post('/api/pcb/print',function( request )
-		request:write_json(pcb:print())
+	server:post('/api/pcb/print',function( request , response)
+		response:json(pcb:print())
 	end)
-	server:post('/api/pcb/preview',function( request )
-		request:write_json(pcb:preview())
+	server:post('/api/pcb/preview',function( request , response )
+		response:json(pcb:preview())
 	end)
-	server:post('/api/pcb/select_pnt',function( request )
-		request:write_json(pcb:select_pnt(request.json))
+	server:post('/api/pcb/select_pnt',function( request , response)
+		response:json(pcb:select_pnt(request.json))
 	end)
-	server:post('/api/pcb/offset_pnt',function( request )
-		request:write_json(pcb:offset_pnt(request.json))
+	server:post('/api/pcb/offset_pnt',function( request , response)
+		response:json(pcb:offset_pnt(request.json))
 	end)
 
 	

@@ -1,17 +1,19 @@
-local video = {}
+local class = require 'llae.class'
 
-local http = require 'llae.http'
+local lvideo = class()
+local camera = require 'camera'
 
-function video:init(  )
+
+function lvideo:_init(  )
 	self._timeout = 0
-	self._source = app.newCameraSource()
-	self._http = http.createServer(function (req, res)
-  		self:process_request(req,res)
-	end)
-	self._http:listen(application.printer.settings.camera_port, application.config.addr)
+	self._source = camera.VideoSource.new()
+	-- self._http = http.createServer(function (req, res)
+  	-- 	self:process_request(req,res)
+	-- end)
+	-- self._http:listen(application.printer.settings.camera_port, application.config.addr)
 end
 
-function video:open(  )
+function lvideo:open(  )
 	if not self._video_opened then
 		if self._source:open(application.printer.settings.camera_device) then
 			self._video_opened = true
@@ -28,7 +30,7 @@ function video:open(  )
 end
 
 
-function video:process_request( req, res )
+function lvideo:process_request( req, res )
 	local uri = req:get_path()
 	self._timeout = 0
 	res:set_header('Content-Type','image/jpeg')
@@ -52,7 +54,7 @@ function video:process_request( req, res )
 	res:finish(self._stub_image)
 end
 
-function video:on_timer(  )
+function lvideo:on_timer(  )
 	self._timeout = self._timeout + 1
 	if self._timeout > 5 then
 		if self._video_started then
@@ -69,4 +71,4 @@ function video:on_timer(  )
 	end
 end
 
-return video
+return lvideo

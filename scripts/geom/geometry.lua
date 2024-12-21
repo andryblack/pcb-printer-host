@@ -1,4 +1,5 @@
 local class = require 'llae.class'
+local log = require 'llae.log'
 local clipperlib = require 'clipperlib'
 
 local Geometry = class(nil,'Geometry')
@@ -21,12 +22,12 @@ function Geometry.new_polygon( points )
 	return Geometry.new({clipperlib.Path.import(points)})
 end
 
-function Geometry.new_circle( x, y, r , vertices, rot)
+function Geometry.new_circle( x, y, r , vertices, rot, rev)
 	local p = {}
 	local points = vertices or 32
 	local ir = rot and (rot * math.pi / 180) or 0
 	for i = 1,points do
-		local a = (math.pi * 2 * (i-1)) / points + ir
+		local a = ((math.pi * 2 * (i-1)) / points + ir) * (rev and -1.0 or 1.0)
 		local s,c = math.sin(a) * r,math.cos(a) * r
 		table.insert(p,{math.floor(x+s),math.floor(y-c)})
 	end
@@ -54,11 +55,41 @@ function Geometry.new_rect( x, y, w, h, rot)
 	return Geometry.new({clipperlib.Path.import(p)})
 end
 
+function Geometry.new_line( sx, sy, ex, ey, w)
+	local p = {}
+	
+	local dx = ex - sx
+	local dy = ey - sy
+
+	local len = math.sqrt(dx*dx + dy*dy)
+	local x,y
+	if len == 0 then
+		x = 0
+		y = w
+	else
+		x = (dx / len)*w*0.5
+		y = (dy / len)*w*0.5
+		x,y = -y,x -- rotate CCW 90
+	end
+
+
+	table.insert(p,add_point({sx,sy},-x,-y))--transform_point(-w/2,-h/2,s,c),x,y))
+	table.insert(p,add_point({ex,ey},-x,-y))--transform_point( w/2,-h/2,s,c),x,y))
+	table.insert(p,add_point({ex,ey}, x, y))--extransform_point( w/2, h/2,s,c),x,y))
+	table.insert(p,add_point({sx,sy}, x, y))--transform_point(-w/2, h/2,s,c),x,y))
+
+	return Geometry.new({clipperlib.Path.import(p)})
+end
+
 
 function Geometry.new_path_buffer( path , width )
 	local c = clipperlib.ClipperOffset.new()
 	c:add_path(clipperlib.Path.import(path),clipperlib.JoinType.Round,clipperlib.EndType.OpenRound)
-	return Geometry.new(c:execute(width/2))
+	local r,err = c:execute(width/2)
+	if not r then
+		error('failed execute: ' .. tostring(err))
+	end
+	return Geometry.new(r)
 end
 
 function Geometry:clear( )
@@ -71,13 +102,14 @@ function Geometry:clear( )
 end
 function Geometry:flush( )
 	if self._c then
-		local r,closed,open = self._c:execute(self._op,fill_rule)
-		if r then
+		local closed,open = self._c:execute(self._op,fill_rule)
+		if closed then
 			self:clear()
 			self._g = closed
 		else
-			error('failed execute')
+			error('failed execute: ' .. tostring(open))
 		end
+		self._c:clear()
 		self._c = nil
 		self._op = nil
 	end
@@ -93,16 +125,27 @@ function Geometry:begin_op( op )
 	self._c:add_paths(self._g,clipperlib.PathType.Subject)
 end
 
-function Geometry:difference( g )
+function Geometry:difference( g , move)
+	--self:flush()
 	if not next(self._g) then
-		error('difference: empty source')
+		self:flush()
+	end
+	if not next(self._g) then
+		log.error('difference: empty source')
+		if move then
+			g:clear()
+		end
+		return
 	end
 	g:flush()
 	self:begin_op(clipperlib.ClipType.Difference)
 	self._c:add_paths(g._g,clipperlib.PathType.Clip)
+	if move then
+		g:clear()
+	end
 end
 
-function Geometry:union( g )
+function Geometry:union( g , move)
 	g:flush()
 	if not self._g then
 		self:flush()
@@ -112,6 +155,9 @@ function Geometry:union( g )
 	else
 		self:begin_op( clipperlib.ClipType.Union )
 		self._c:add_paths(g._g,clipperlib.PathType.Clip)
+		if move then
+			g:clear()
+		end
 	end
 end
 
@@ -119,11 +165,12 @@ function Geometry:dump( n )
 	self:flush()
 	local l = {}
 	for _,v in ipairs(self._g) do
-		local c = {}
-		for _,j in ipairs(v) do
-			table.insert(c,string.format('{%d,%d}',j[1],j[2]))
-		end
-		table.insert(l,'{'..table.concat(c,',')..'}')
+		-- local c = {}
+		-- for _,j in ipairs(v) do
+		-- 	table.insert(c,string.format('{%d,%d}',j[1],j[2]))
+		-- end
+		-- table.insert(l,'{'..table.concat(c,',')..'}')
+		table.insert(l,'[' .. tostring(v) .. ']')
 	end
 	return '[' .. table.concat(l,',') .. ']'
 end

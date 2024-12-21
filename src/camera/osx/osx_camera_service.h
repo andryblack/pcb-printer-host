@@ -23,11 +23,12 @@ public:
 	OSXCameraService();
 	~OSXCameraService();
 
-	virtual void start();
-	virtual void stop();
 
-	virtual bool open(lua_State*);
-	virtual void close();
+	virtual void start() override;
+	virtual void stop() override;
+
+	virtual bool open(lua::state& l) override;
+	virtual void close() override;
 };
 
 #endif /*_OSX_CAMERA_SERVICE_H_INCLUDED_*/

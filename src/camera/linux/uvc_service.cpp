@@ -301,7 +301,6 @@ void uvc_service::stop() {
 }
 
 
-int VideoSource::lnew(lua_State* L) {
-	(new uvc_service())->push(L);
-	return 1;
+lua::multiret VideoSource::lnew(lua::state& l) {
+    return push(l,new uvc_service());
 }

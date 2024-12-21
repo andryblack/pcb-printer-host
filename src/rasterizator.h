@@ -1,9 +1,10 @@
 #ifndef _RASTERIZATOR_H_INCLUDED_
 #define _RASTERIZATOR_H_INCLUDED_
 
-#include "lua_holder.h"
+#include <meta/object.h>
+#include <lua/state.h>
+#include <common/intrusive_ptr.h>
 #include "clipperlib/clipper.h"
-#include "work.h"
 #include <cmath>
 
 namespace geom {
@@ -111,31 +112,11 @@ namespace geom {
 }
 
 class Rasterizator;
-typedef Ref<Rasterizator> RasterizatorRef;
+typedef common::intrusive_ptr<Rasterizator> RasterizatorPtr;
 
-class RasterizatorWork : public ThreadWorkReq {
-protected:
-	RasterizatorRef m_rast;
-public:
-	RasterizatorWork(const RasterizatorRef& rast);
-	~RasterizatorWork();
-};
 
-class RasterizatorStartWork : public RasterizatorWork {
-public:
-	RasterizatorStartWork(const RasterizatorRef& rast);
-	virtual void on_work();
-};
-typedef Ref<RasterizatorStartWork> RasterizatorStartWorkRef;
-
-class RasterizatorProcessWork : public RasterizatorWork {
-public:
-	RasterizatorProcessWork(const RasterizatorRef& rast);
-	virtual void on_work();
-};
-typedef Ref<RasterizatorProcessWork> RasterizatorProcessWorkRef;
-
-class Rasterizator : public RefCounter {
+class Rasterizator : public meta::object {
+	META_OBJECT
 private:
 	clipperlib::Clipper m_clipper;
 	double m_x_scale;
@@ -151,32 +132,38 @@ private:
 	size_t m_num_steps;
 	size_t m_crnt_steps;
 	clipperlib::Paths m_solutions;
-public:
-	Rasterizator();
-	void push(lua_State* L);
-	void set_scale(double xs,double ys);
-
-	static int lnew(lua_State* L);
-	static int add_paths(lua_State* L);
-	static int lbind(lua_State* L);
-	static int get_line(lua_State* L);
-
-	static int setup_transform(lua_State* L);
 
 	void do_start();
 	void do_process();
+
+	class RasterizatorWork;
+	class RasterizatorStartWork;
+	class RasterizatorProcessWork;
+public:
+	Rasterizator();
+	void set_scale(double xs,double ys);
+
+	static lua::multiret lnew(lua::state& l);
+	static void lbind(lua::state& l);
+
+	void add_paths(lua::state& l);
+	lua::multiret get_line(lua::state& l);
+
+	void setup_transform(lua::state& L);
+
+	
 	bool complete() const { return m_y_pos > m_bounds.bottom; }
 	double get_y_pos() const { return m_y_pos / (m_y_scale * 1024); }
 	double get_y_start() const { return m_bounds.top / (m_y_scale * 1024); }
 	double get_y_len() const { return (m_bounds.bottom-m_bounds.top) / (m_y_scale * 1024); }
-	void push_line(lua_State* L);
+	void push_line(lua::state& l);
 	int64_t get_width() const { return m_width; }
 	int64_t get_height() const { return (m_bounds.bottom-m_bounds.top) / 1024; }
 	int64_t get_left() const { return m_bounds.left / 1024; }
 	int64_t get_top() const { return m_bounds.top / 1024;}
-	void inverse(lua_State* L);
-	void start(lua_State* L);
-	void process(lua_State* L);
+	void inverse(lua::state& l);
+	lua::multiret start(lua::state& l);
+	lua::multiret process(lua::state& l);
 };
 
 
