@@ -4,6 +4,8 @@ project 'pcb-printer-host'
 module 'llae'
 module 'libpng'
 
+config('llae','extern_main',true)
+
 cmodule 'clipperlib'
 cmodule 'rasterizator'
 cmodule 'camera'
