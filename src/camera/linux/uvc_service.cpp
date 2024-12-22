@@ -10,7 +10,7 @@
 #include <linux/types.h>          /* for videodev2.h */
 #include <linux/videodev2.h>
 
-#include "luabind.h"
+#include <lua/bind.h>
 #if defined(USE_VC_HW_ENCODING) 
 #include "rpi_jpeg_encoder.h"
 #define jpeg_encoder_finish rpi_jpeg_encoder_finish
