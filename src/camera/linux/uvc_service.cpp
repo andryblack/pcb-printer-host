@@ -72,9 +72,9 @@ void uvc_service::close() {
 
 }
 
-bool uvc_service::open(lua_State* L) {
+bool uvc_service::open(lua::state& l) {
 	close();
-	const char* dev = lua_tostring(L,2);
+	const char* dev = l.tostring(2);
 	if((m_fd = OPEN_VIDEO(dev, O_RDWR)) == -1) {
         printf("ERROR opening V4L interface %s\n",dev);
         return false;

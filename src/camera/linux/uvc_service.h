@@ -36,11 +36,11 @@ public:
 	uvc_service();
 	~uvc_service();
 
-	virtual void close();
-	virtual bool open(lua_State*);
+	virtual void close() override;
+	virtual bool open(lua::state& l) override;
 
-	void start();
-	void stop();
+	virtual void start() override;
+	virtual void stop() override;
 };
 
 #endif /*_UVC_SERVICE_H_INCLUDED_*/
