@@ -13,6 +13,7 @@ local Connection = require 'printer.connection'
 local Protocol = require 'printer.protocol'
 
 local state_disconnected = 'disconnected'
+local state_connecting = 'connecting'
 local state_idle = 'idle'
 local state_printing = 'printing'
 local state_paused = 'paused'
@@ -162,19 +163,27 @@ function printer:disconnect(  )
 end
 
 function printer:connect(  )
-	self._protocol:reset()
-	local res,err = self._connection:open()
+	self._state = state_connecting
+	async.run(function()
+		self._protocol:reset()
+		local res,err = self._connection:open()
 
-	if res then
-		self._state = state_idle
-		self:upload_settings()
-	else
-		log.error('failed open connection',err)
-		self._auto_connect = 30
-	end
+		if res then
+
+			self:sync_protocol()
+
+			self._state = state_idle
+			self:upload_settings()
+		else
+			log.error('failed open connection',err)
+			self._auto_connect = 30
+			self._state = state_disconnected
+		end
+	end)
 end
 
 function printer:sync_protocol()
+	log.info('start sync protocol')
 	self._protocol:reset()
 	self._position_updated = false
 	while not self._position_updated do
@@ -183,10 +192,11 @@ function printer:sync_protocol()
 		end
 		async.pause(1000)
 	end
+	log.info('finish sync protocol')
 end
 
 function printer:upload_settings() 
-	self:sync_protocol()
+	
 	self._protocol:setup_motor(self.settings.motor_pid_P,
 			self.settings.motor_pid_I,
 			self.settings.motor_pid_D,
