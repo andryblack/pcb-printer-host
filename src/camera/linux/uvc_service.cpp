@@ -136,13 +136,16 @@ bool uvc_service::open(lua::state& l) {
         }
         ++inpt.index;
     }
-
-    ret = IOCTL_VIDEO(m_fd, VIDIOC_G_INPUT, &inpt);
+    int current_camera_input = -1;
+    ret = IOCTL_VIDEO(m_fd, VIDIOC_G_INPUT, &current_camera_input);
     if (ret == 0) {
-        printf("Current input: %s %d\n",inpt.name,inpt.index);
+        printf("Current input: %d\n",current_camera_input);
     }
-    inpt.index = found_camera_input;
-    ret = IOCTL_VIDEO(m_fd, VIDIOC_S_INPUT, &inpt);
+    if (found_camera_input == -1 && current_camera_input == -1) {
+        printf("Not found input\n");
+        return false;
+    } 
+    ret = IOCTL_VIDEO(m_fd, VIDIOC_S_INPUT, &found_camera_input);
     if (ret != 0) {
         printf("Failed set camera input %d\n",ret);
     }
