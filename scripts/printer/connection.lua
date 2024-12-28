@@ -38,7 +38,6 @@ function SerialConnection:_init( path , delegate)
 end
 
 function SerialConnection:read_function(  )
-	local data = ''
 	while true do
 		local ch, e = self._serial:read()
 		
@@ -48,17 +47,7 @@ function SerialConnection:read_function(  )
 			end
 			break
 		end
-		--print('>',ch)
-		data = data .. ch
-		while true do
-			local l,t = string.match(data,'^([^\r\n]*)[\r\n]+(.*)$')
-			if l then
-				data = t
-				self._delegate:on_data( l )
-			else
-				break
-			end
-		end
+		self._delegate:on_data( ch )
 		--
 	end
 	log.info('read complete',self._path)
