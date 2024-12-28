@@ -121,6 +121,32 @@ bool uvc_service::open(lua::state& l) {
         return false;
     }
 
+    v4l2_input inpt;
+    inpt.index = 0;
+    int found_camera_input = -1;
+    while (true) {
+        ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUM_FMT, &inpt);
+        if (ret == 0) {
+            printf("Input %s type: %d\n",inpt.name,inpt.type);
+            if (inpt.type == V4L2_INPUT_TYPE_CAMERA) {
+                found_camera_input = inpt.index;
+            }
+        } else {
+            break;
+        }
+        ++inpt.index;
+    }
+
+    ret = IOCTL_VIDEO(m_fd, VIDIOC_G_INPUT, &inpt);
+    if (ret == 0) {
+        printf("Current input: %s %d\n",inpt.name,inpt.index);
+    }
+    inpt.index = found_camera_input;
+    ret = IOCTL_VIDEO(m_fd, VIDIOC_S_INPUT, &inpt);
+    if (ret != 0) {
+        printf("Failed set camera input %d\n",ret);
+    }
+
     int width = 640;
     int height = 480;
 
