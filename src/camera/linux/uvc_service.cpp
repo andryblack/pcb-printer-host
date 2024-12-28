@@ -91,10 +91,10 @@ static const char* get_fmt_str(uint32_t fmt) {
             break;
         }
     static char fmt_buffer[32];
-    snprintf(fmt_buffer,32,"%c%c%c%c",int(m_fmt.fmt.pixelformat&0xff),
-        int((m_fmt.fmt.pixelformat>>8)&0xff),
-        int((m_fmt.fmt.pixelformat>>16)&0xff),
-        int((m_fmt.fmt.pixelformat>>24)&0xff));
+    snprintf(fmt_buffer,32,"%c%c%c%c",int(fmt&0xff),
+        int((fmt>>8)&0xff),
+        int((fmt>>16)&0xff),
+        int((fmt>>24)&0xff));
     return fmt_buffer;
 }
 
@@ -142,7 +142,7 @@ bool uvc_service::open(lua::state& l) {
     m_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     ret = IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt);
     if ( ret == 0) {
-        const char* fmt = get_fmt_str(m_fmt.fmt.pixelformat);
+        const char* fmt = get_fmt_str(m_fmt.fmt.pix.pixelformat);
         
         printf("Current size: %dx%d %s\n",
              m_fmt.fmt.pix.width,
