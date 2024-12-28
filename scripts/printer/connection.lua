@@ -114,13 +114,13 @@ end
 
 function FakeConnection:open( )
 	self._opened = true
-	self._printer:start()
+	--self._printer:start()
 	return true
 end
 
 function FakeConnection:close( )
 	self._opened = false
-	self._printer:stop()
+	--self._printer:stop()
 end
 
 function FakeConnection:is_opened(  )

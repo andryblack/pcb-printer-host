@@ -1,6 +1,7 @@
 local class = require 'llae.class'
 local log = require 'llae.log'
 local async = require 'llae.async'
+local uv = require 'llae.uv'
 
 local printer = class()
 
@@ -51,13 +52,13 @@ function printer:init(  )
 	end
 	function protocol_delegate:add_speed_sample( sample )
 		if sample.pwm == 0 then
-			print('SPEED end')
+			log.info('SPEED end')
 			self.printer:on_speed_read_end()
 		else
 			table.insert(self.printer._speed_samples, {
 				speed=(1000000 / (sample.dt*self.printer._resolution_x)), -- cnt / us,  / ctnt/mm = mm/us = mm/s
 				pwm=sample.pwm})
-			print('SPEED',sample.dt,sample.pwm)
+			log.info('SPEED',sample.dt,sample.pwm)
 		end
 	end
 	self._connection = Connection.create( self.settings.device , connection_delegate )
@@ -79,7 +80,7 @@ printer._actions = {}
 printer._actions['pid-move'] = function(self,data) 
 	self._speed_samples= {}
 	local speed = self:calc_speed(data.s)
-	print('>>>>>>> START',speed)
+	log.info('>>>>>>> START',speed)
 	self._target_speed = data.s
 	self._protocol:move_x(
 		math.ceil(data.p * self._resolution_x),
@@ -88,7 +89,7 @@ printer._actions['pid-move'] = function(self,data)
 
 
 	if not self._read_speed then
-		self._read_speed = llae.newTimer()
+		self._read_speed = uv.timer.new()
 	else
 		self._read_speed:stop()
 	end

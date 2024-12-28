@@ -85,6 +85,7 @@ bool uvc_service::open(lua::state& l) {
         printf("ERROR unable to query capabilities.\n");
         return false;
     }
+    printf("Camera driver: %s, card: %s, bus: %s\n",m_cap.driver,m_cap.card,m_cap.bus_info);
     if((m_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0) {
         printf("ERROR video capture not supported.\n");
         return false;
