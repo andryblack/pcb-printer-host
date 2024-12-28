@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <string>
+#include <cstdint>
 
 #ifndef DBL_MAX
 #include <float.h>
