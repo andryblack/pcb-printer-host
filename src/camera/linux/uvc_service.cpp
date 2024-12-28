@@ -72,6 +72,32 @@ void uvc_service::close() {
 
 }
 
+static const char* get_fmt_str(uint32_t fmt) {
+     switch(fmt) {
+        case V4L2_PIX_FMT_MJPEG:
+            return "MJPEG";
+            break;
+        case V4L2_PIX_FMT_YUYV:
+            return "YUYV";
+            break;
+        case V4L2_PIX_FMT_RGB24:
+            return "RGB24";
+            break;
+        case V4L2_PIX_FMT_BGR24:
+            return "BGR24";
+            break;
+        case V4L2_PIX_FMT_RGB565:
+            return "RGB565";
+            break;
+        }
+    static char fmt_buffer[32];
+    snprintf(fmt_buffer,32,"%c%c%c%c",int(m_fmt.fmt.pixelformat&0xff),
+        int((m_fmt.fmt.pixelformat>>8)&0xff),
+        int((m_fmt.fmt.pixelformat>>16)&0xff),
+        int((m_fmt.fmt.pixelformat>>24)&0xff));
+    return fmt_buffer;
+}
+
 bool uvc_service::open(lua::state& l) {
 	close();
 	const char* dev = l.tostring(2);
@@ -98,15 +124,34 @@ bool uvc_service::open(lua::state& l) {
     int width = 640;
     int height = 480;
 
+    struct v4l2_fmtdesc fmt_desc;
+    fmt_desc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt_desc.index = 0;
+    while (true) {
+        auto ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUM_FMT, &fmt_desc);
+        if (ret == 0) {
+            printf("Supported fmt: %s %s\n",get_fmt_str(fmt_desc.pixelformat),fmt_desc.description);
+        } else {
+            break;
+        }
+        ++fmt_desc.index;
+    }
+
     memset(&m_fmt, 0, sizeof(struct v4l2_format));
     
     m_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt) == 0) {
-        printf("Current size: %dx%d\n",
+    auto ret = IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt);
+    if ( ret == 0) {
+        const char* fmt = get_fmt_str(m_fmt.fmt.pixelformat);
+        
+        printf("Current size: %dx%d %s\n",
              m_fmt.fmt.pix.width,
-             m_fmt.fmt.pix.height);
+             m_fmt.fmt.pix.height,fmt);
+    } else {
+        printf("Failed get current format %d\n",ret);
     }
 
+    m_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     m_fmt.fmt.pix.width = width;
     m_fmt.fmt.pix.height = height;
     m_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
