@@ -74,6 +74,7 @@ end
 function SerialConnection:close( )
 	if self._serial then
 		self._serial:close()
+		self._serial = nil
 	end
 end
 
