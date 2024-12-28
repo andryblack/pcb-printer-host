@@ -45,6 +45,9 @@ function server:_init( settings )
 	end
 
 
+	self:get('/video',function(req,res)
+		return application.video:process_request(req,res)
+	end)
 
 	self.printer_api.make_routes( self )
 

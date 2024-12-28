@@ -1,4 +1,6 @@
 local class = require 'llae.class'
+local fs = require 'llae.fs'
+local log = require 'llae.log'
 
 local lvideo = class()
 local camera = require 'camera'
@@ -7,10 +9,6 @@ local camera = require 'camera'
 function lvideo:_init(  )
 	self._timeout = 0
 	self._source = camera.VideoSource.new()
-	-- self._http = http.createServer(function (req, res)
-  	-- 	self:process_request(req,res)
-	-- end)
-	-- self._http:listen(application.printer.settings.camera_port, application.config.addr)
 end
 
 function lvideo:open(  )
@@ -18,7 +16,7 @@ function lvideo:open(  )
 		if self._source:open(application.printer.settings.camera_device) then
 			self._video_opened = true
 		else
-			print('failed open video source')
+			log.error('failed open video source')
 		end
 	end
 	if self._video_opened and not 
@@ -31,7 +29,6 @@ end
 
 
 function lvideo:process_request( req, res )
-	local uri = req:get_path()
 	self._timeout = 0
 	res:set_header('Content-Type','image/jpeg')
 	res:set_header('Pragma','no-cache')
@@ -42,14 +39,15 @@ function lvideo:process_request( req, res )
 			res:finish(frame)
 			return
 		else
-			print('no frame')
+			log.error('no frame')
 		end
 	end
 
 	if not self._stub_image then
-		local f = assert(io.open(application.config.http_root .. '/img/camera.jpg'))
-		self._stub_image = f:read('a')
-		f:close()
+		--local f = assert(io.open(application.config.http_root .. '/img/camera.jpg'))
+		local fn = (application.config.rootdir or fs.pwd()) .. '/public/img/camera.jpg'
+		self._stub_image = fs.load_file(fn)
+		--f:close()
 	end
 	res:finish(self._stub_image)
 end

@@ -167,18 +167,6 @@ number {
 	page = 'pcb'
 }
 
-string {
-	name = 'camera_url',
-	descr = 'Camera steam url',
-	page = 'camera',
-}
-
-integer {
-	name = 'camera_port',
-	descr = 'Camera steam port',
-	page = 'camera',
-	default = 8081
-}
 
 string {
 	name = 'camera_device',
