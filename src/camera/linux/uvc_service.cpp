@@ -125,7 +125,7 @@ bool uvc_service::open(lua::state& l) {
     inpt.index = 0;
     int found_camera_input = -1;
     while (true) {
-        ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUM_FMT, &inpt);
+        ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUMINPUT, &inpt);
         if (ret == 0) {
             printf("Input %s type: %d\n",inpt.name,inpt.type);
             if (inpt.type == V4L2_INPUT_TYPE_CAMERA) {
