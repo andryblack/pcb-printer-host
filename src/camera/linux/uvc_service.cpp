@@ -122,6 +122,7 @@ bool uvc_service::open(lua::state& l) {
     }
 
     v4l2_input inpt;
+    memset(&inpt,0,sizeof(inpt));
     inpt.index = 0;
     int found_camera_input = -1;
     while (true) {
@@ -132,6 +133,9 @@ bool uvc_service::open(lua::state& l) {
                 found_camera_input = inpt.index;
             }
         } else {
+            if ( ret != EINVAL) {
+                printf("Failed enum input: %d\n",ret);
+            }
             break;
         }
         ++inpt.index;
