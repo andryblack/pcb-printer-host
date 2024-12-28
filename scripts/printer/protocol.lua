@@ -133,7 +133,7 @@ end
 function Protocol:on_packet( data )
 	--print('on_packet',#data)
 	if not self._recv_seq then
-		print('unexpected packet')
+		log.error('unexpected packet',#data,struct.format_bytes(data))
 		return
 	end
 	self._timeout:stop()
@@ -155,21 +155,21 @@ function Protocol:_process_packet( data )
 	self._recv_seq = nil
 	local len = #data
 	if len < (Protocol.header_t_size + 1) then
-		print('too short packet')
+		log.error('too short packet')
 		return
 	end
 	local header,o = struct.read(data,self.header_t)
 	if len ~= (Protocol.header_t_size + 1 + header.len) then
-		print('invalid packet len')
+		log.error('invalid packet len')
 		return
 	end
 	if not CRC8.check(data,len-1,string.byte(data,len)) then
-		print('packet',struct.format_bytes(data))
-		print('invalid packet crc',string.format('%02x/%02x',string.byte(data,len),CRC8.calc(data,len-1)))
+		log.error('packet',struct.format_bytes(data))
+		log.error('invalid packet crc',string.format('%02x/%02x',string.byte(data,len),CRC8.calc(data,len-1)))
 		return
 	end
 	if header.seq ~= seq then
-		print('invalid packet seq')
+		log.error('invalid packet seq',header.seq,seq)
 		return
 	end
 	--print('on packet',header.cmd)
@@ -182,7 +182,7 @@ function Protocol:is_ready(  )
 end
 
 function Protocol:on_response( header, data )
-	print('<',self._cmd_names[header.cmd],#data)
+	log.info('<',self._cmd_names[header.cmd],#data)
 	if header.cmd == Protocol.CMD_PING then
 		local o,s = struct.read(data,Protocol.ping_resp_t,0)
 		self._delegate:update_pos(o.pos_x,o.pos_y)
@@ -225,7 +225,7 @@ function Protocol:_cmd_impl( cmd, data , wait)
 	},'')
 	packet = packet .. struct.writeu8(CRC8.calc(packet,#packet))
 	local raw = self._encoder:encode(packet)
-	print('>',self._cmd_names[cmd],#raw)
+	log.info('>',self._cmd_names[cmd],#raw)
 	self._delegate:write(raw)
 	local to = 1000
 	if cmd == Protocol.CMD_PRINT then

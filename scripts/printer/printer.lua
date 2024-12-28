@@ -46,6 +46,7 @@ function printer:init(  )
 	function protocol_delegate:update_pos( pos_x, pos_y )
 		self.printer._position_x = pos_x
 		self.printer._position_y = pos_y
+		self.printer._position_updated = true
 	end
 	function protocol_delegate:add_speed_sample( sample )
 		if sample.pwm == 0 then
@@ -173,7 +174,19 @@ function printer:connect(  )
 	end
 end
 
+function printer:sync_protocol()
+	self._protocol:reset()
+	self._position_updated = false
+	while not self._position_updated do
+		if self._protocol:is_ready() then
+			self._protocol:ping()
+		end
+		async.pause(1000)
+	end
+end
+
 function printer:upload_settings() 
+	self:sync_protocol()
 	self._protocol:setup_motor(self.settings.motor_pid_P,
 			self.settings.motor_pid_I,
 			self.settings.motor_pid_D,
