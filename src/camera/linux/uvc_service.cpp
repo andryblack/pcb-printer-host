@@ -128,7 +128,7 @@ bool uvc_service::open(lua::state& l) {
     fmt_desc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt_desc.index = 0;
     while (true) {
-        auto ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUM_FMT, &fmt_desc);
+        ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUM_FMT, &fmt_desc);
         if (ret == 0) {
             printf("Supported fmt: %s %s\n",get_fmt_str(fmt_desc.pixelformat),fmt_desc.description);
         } else {
@@ -140,7 +140,7 @@ bool uvc_service::open(lua::state& l) {
     memset(&m_fmt, 0, sizeof(struct v4l2_format));
     
     m_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    auto ret = IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt);
+    ret = IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt);
     if ( ret == 0) {
         const char* fmt = get_fmt_str(m_fmt.fmt.pixelformat);
         
