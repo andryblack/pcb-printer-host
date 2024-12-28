@@ -119,8 +119,9 @@ function Protocol:reset(  )
 	self._decoder:reset()
 end
 
-function Protocol:on_data( data )
+function Protocol:on_data( data_ch )
 	--print('on data',#data)
+	local data = tostring(data_ch)
 	local len = #data
 	local o = 0
 	local b
