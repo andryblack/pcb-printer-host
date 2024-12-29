@@ -175,6 +175,13 @@ string {
 	default = '/dev/video0'
 }
 
+string {
+	name = 'camera_encoder_device',
+	descr = 'Camera encoder device',
+	page = 'camera',
+	default = '/dev/video31'
+}
+
 integer {
 	name = 'camera_size_x',
 	descr = 'Camera resolution X',

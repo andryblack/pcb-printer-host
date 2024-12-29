@@ -13,7 +13,8 @@
 
 static const size_t NUM_BUFFERS = 4;
 
-class uvc_service : public VideoSource {
+
+class v4l_service : public VideoSource {
 private:
 	int m_fd;
 	struct v4l2_capability m_cap;
@@ -31,10 +32,15 @@ private:
     void start_thread();
     void stop_thread();
     bool m_need_encode;
-    char m_encode_buffer[640*480*2];
+    uint8_t m_encode_buffer[640*480*2];
+
+    int m_enc_fd;
+    struct v4l2_capability m_enc_cap;
+    bool open_jpeg_encoder(lua::state& l);
+    size_t jpeg_encode(const void* src,size_t src_size,void* dst);
 public:
-	uvc_service();
-	~uvc_service();
+	v4l_service();
+	~v4l_service();
 
 	virtual void close() override;
 	virtual bool open(lua::state& l) override;

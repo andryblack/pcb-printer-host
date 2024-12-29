@@ -13,7 +13,8 @@ end
 
 function lvideo:open(  )
 	if not self._video_opened then
-		if self._source:open(application.printer.settings.camera_device) then
+		if self._source:open(application.printer.settings.camera_device,
+							 application.printer.settings.camera_encoder_device) then
 			self._video_opened = true
 		else
 			log.error('failed open video source')

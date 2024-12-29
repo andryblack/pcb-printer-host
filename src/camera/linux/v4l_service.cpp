@@ -11,24 +11,11 @@
 #include <linux/videodev2.h>
 
 #include <lua/bind.h>
-#if defined(USE_VC_HW_ENCODING) 
-#include "rpi_jpeg_encoder.h"
-#define jpeg_encoder_finish rpi_jpeg_encoder_finish
-#define jpeg_encoder_init rpi_jpeg_encoder_init
-#define jpeg_encode rpi_jpeg_encode
-#else
-static void jpeg_encoder_finish() {}
-static size_t jpeg_encode(const void* src_data,void* dst_data) {
-    return 0;
-}
-static bool jpeg_encoder_init(size_t img_width, size_t img_height) {
-    return false;
-}
-#endif
+
 
 #define HEADERFRAME1 0xaf
 
-uvc_service::uvc_service() : m_fd(-1),m_read_thread(0),m_active(false),m_started(false) {
+uvc_service::uvc_service() : m_fd(-1),m_read_thread(0),m_active(false),m_started(false),m_enc_fd(-1) {
     m_need_encode = false;
     memset(m_buffers_mem,0,sizeof(m_buffers_mem));
 }
@@ -69,6 +56,10 @@ void uvc_service::close() {
 		CLOSE_VIDEO(m_fd);
 		m_fd = -1;
 	}
+    if (m_enc_fd != -1) {
+        CLOSE_VIDEO(m_enc_fd);
+        m_enc_fd = -1;
+    }
 
 }
 
@@ -98,7 +89,40 @@ static const char* get_fmt_str(uint32_t fmt) {
     return fmt_buffer;
 }
 
-bool uvc_service::open(lua::state& l) {
+size_t v4l_service::jpeg_encode(const void* src,void* dst) {
+    return 0;
+}
+
+bool v4l_service::open_jpeg_encoder(lua::state& l) {
+    if (!l.isstring(3)) {
+        printf("Need encoder dev\n");
+        return false;
+    }
+    const char* dev = l.tostring(3);
+    if((m_enc_fd = OPEN_VIDEO(dev, O_RDWR)) == -1) {
+        printf("ERROR opening V4L interface %s\n",dev);
+        return false;
+    }
+    memset(&m_enc_cap, 0, sizeof(struct v4l2_capability));
+    int ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_QUERYCAP, &m_enc_cap);
+    if(ret < 0) {
+        printf("ERROR unable to query encoder capabilities.\n");
+        return false;
+    }
+    printf("Encoder driver: %s, card: %s, bus: %s caps: %08x\n",m_enc_cap.driver,m_enc_cap.card,m_enc_cap.bus_info,m_enc_cap.capabilities);
+    if(!(m_enc_cap.capabilities & V4L2_CAP_VIDEO_M2M)) {
+        printf("ERROR does not support m2m i/o",m_enc_cap.capabilities);
+        return false;
+    }
+    if (!(m_enc_cap.capabilities & V4L2_CAP_READWRITE)) {
+        printf("ERROR does not support readwrite i/o");
+        return false;
+    }
+                
+    return true;
+}
+
+bool v4l_service::open(lua::state& l) {
 	close();
 	const char* dev = l.tostring(2);
 	if((m_fd = OPEN_VIDEO(dev, O_RDWR)) == -1) {
@@ -209,7 +233,7 @@ bool uvc_service::open(lua::state& l) {
     printf("using: %dx%d\n",width,height);
     if (m_fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_MJPEG) {
         if (m_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
-            if (jpeg_encoder_init(width,height)) {
+            if ( open_jpeg_encoder(l) ) {
                 m_need_encode = true;
             } else {
                 printf("ERROR failed init jpeg encoder\n");
@@ -259,22 +283,22 @@ bool uvc_service::open(lua::state& l) {
     return true;
 }
 
-void uvc_service::start_thread() {
+void v4l_service::start_thread() {
 	uv_thread_create(&m_read_thread,&read_thread_func,this);
 }
 
-void uvc_service::stop_thread() {
+void v4l_service::stop_thread() {
 	if (m_read_thread) {
 		uv_thread_join(&m_read_thread);
 		m_read_thread = 0;
 	}
 }
 
-void uvc_service::read_thread_func(void * arg) {
+void v4l_service::read_thread_func(void * arg) {
 	static_cast<uvc_service*>(arg)->read_thread();
 }
 
-void uvc_service::read_thread() {
+void v4l_service::read_thread() {
 	printf("read_thread started\n");
 	while (m_active && m_started) {
 		fd_set rd_fds;
@@ -300,7 +324,7 @@ void uvc_service::read_thread() {
 	printf("read_thread ended\n");
 }
 
-void uvc_service::process_frame() {
+void v4l_service::process_frame() {
 	if (!m_started) {
 		return;
 	}
@@ -316,7 +340,7 @@ void uvc_service::process_frame() {
     if(m_buf.bytesused > HEADERFRAME1 && m_need_frame) { 
     	
         if (m_need_encode) {
-            size_t frame_size = jpeg_encode(m_buffers_mem[m_buf.index],m_encode_buffer);
+            size_t frame_size = jpeg_encode(m_buffers_mem[m_buf.index],m_buf.bytesused,m_encode_buffer);
             if (frame_size) {
                 put_frame(m_encode_buffer,frame_size,m_buf.timestamp);
             } 
@@ -335,7 +359,7 @@ void uvc_service::process_frame() {
 
 }
 
-void uvc_service::start() {
+void v4l_service::start() {
 	if (m_started) {
 		return;
 	}
@@ -364,7 +388,7 @@ void uvc_service::start() {
     start_thread();
 }
 
-void uvc_service::stop() {
+void v4l_service::stop() {
 	if (!m_started) {
 		return;
 	}
@@ -382,5 +406,5 @@ void uvc_service::stop() {
 
 
 lua::multiret VideoSource::lnew(lua::state& l) {
-    return push(l,new uvc_service());
+    return push(l,new v4l_service());
 }
