@@ -15,7 +15,7 @@
 
 #define HEADERFRAME1 0xaf
 
-uvc_service::uvc_service() : m_fd(-1),m_read_thread(0),m_active(false),m_started(false),m_enc_fd(-1) {
+v4l_service::v4l_service() : m_fd(-1),m_read_thread(0),m_active(false),m_started(false),m_enc_fd(-1) {
     m_need_encode = false;
     memset(m_buffers_mem,0,sizeof(m_buffers_mem));
 }
@@ -31,14 +31,12 @@ static const char* vf_tostr(int vf) {
 	return "unknown";
 }
 
-uvc_service::~uvc_service() {
+v4l_service::~v4l_service() {
 	close();
 }
-void uvc_service::close() {
+void v4l_service::close() {
 
-    if (m_need_encode) {
-        jpeg_encoder_finish();
-    }
+   
 
 	m_need_encode = false;
 
@@ -89,7 +87,7 @@ static const char* get_fmt_str(uint32_t fmt) {
     return fmt_buffer;
 }
 
-size_t v4l_service::jpeg_encode(const void* src,void* dst) {
+size_t v4l_service::jpeg_encode(const void* src,size_t src_size,void* dst) {
     return 0;
 }
 
@@ -295,7 +293,7 @@ void v4l_service::stop_thread() {
 }
 
 void v4l_service::read_thread_func(void * arg) {
-	static_cast<uvc_service*>(arg)->read_thread();
+	static_cast<v4l_service*>(arg)->read_thread();
 }
 
 void v4l_service::read_thread() {
