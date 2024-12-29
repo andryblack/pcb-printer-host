@@ -108,14 +108,65 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
         return false;
     }
     printf("Encoder driver: %s, card: %s, bus: %s caps: %08x\n",m_enc_cap.driver,m_enc_cap.card,m_enc_cap.bus_info,m_enc_cap.capabilities);
-    if(!(m_enc_cap.capabilities & V4L2_CAP_VIDEO_M2M)) {
-        printf("ERROR does not support m2m i/o",m_enc_cap.capabilities);
+    if((m_enc_cap.capabilities & ( V4L2_CAP_VIDEO_M2M_MPLANE)) == 0) {
+        printf("ERROR does not support m2m i/o\n");
         return false;
     }
-    if (!(m_enc_cap.capabilities & V4L2_CAP_READWRITE)) {
-        printf("ERROR does not support readwrite i/o");
+
+    struct v4l2_format inputFormat = {0};
+    inputFormat.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+    ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_G_FMT, &inputFormat);
+    if(ret < 0) {
+        printf("ERROR unable get encoder input format.\n");
+    }
+    inputFormat.fmt.pix_mp.width = m_fmt.fmt.pix.width;
+    inputFormat.fmt.pix_mp.height = m_fmt.fmt.pix.height;
+    inputFormat.fmt.pix_mp.pixelformat = m_fmt.fmt.pix.pixelformat;
+    inputFormat.fmt.pix_mp.field = V4L2_FIELD_ANY;
+    inputFormat.fmt.pix_mp.colorspace = V4L2_COLORSPACE_DEFAULT;
+    inputFormat.fmt.pix_mp.num_planes = 1;
+
+    ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_S_FMT, &inputFormat);
+    if(ret < 0) {
+        printf("ERROR unable set encoder input format.\n");
         return false;
     }
+
+    struct v4l2_format outputFormat = {0};
+    outputFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_G_FMT, &outputFormat);
+    if(ret < 0) {
+        printf("ERROR unable get encoder output format.\n");
+    }
+    outputFormat.fmt.pix_mp.width = m_fmt.fmt.pix.width;
+    outputFormat.fmt.pix_mp.height = m_fmt.fmt.pix.height;
+    outputFormat.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_MJPEG;
+    outputFormat.fmt.pix_mp.field = V4L2_FIELD_ANY;
+    outputFormat.fmt.pix_mp.colorspace = V4L2_COLORSPACE_DEFAULT;
+    outputFormat.fmt.pix_mp.num_planes = 1;
+
+    ret = IOCTL_VIDEO(m_fd, VIDIOC_S_FMT, &outputFormat);
+    if(ret < 0) {
+        printf("ERROR unable set encoder output format.\n");
+        return false;
+    }
+
+    // struct v4l2_fmtdesc fmt_desc;
+    // fmt_desc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    // fmt_desc.index = 0;
+    // while (true) {
+    //     ret = IOCTL_VIDEO(m_fd, VIDIOC_ENUM_FMT, &fmt_desc);
+    //     if (ret == 0) {
+    //         printf("Supported fmt: %s %s\n",get_fmt_str(fmt_desc.pixelformat),fmt_desc.description);
+    //     } else {
+    //         break;
+    //     }
+    //     ++fmt_desc.index;
+    // }
+    // if ((m_enc_cap.capabilities & V4L2_CAP_READWRITE) == 0) {
+    //     printf("ERROR does not support readwrite i/o\n");
+    //     return false;
+    // }
                 
     return true;
 }
@@ -226,6 +277,7 @@ bool v4l_service::open(lua::state& l) {
             return false;
         }
     }
+    IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt);
     width = m_fmt.fmt.pix.width;
     height = m_fmt.fmt.pix.height;
     printf("using: %dx%d\n",width,height);
