@@ -1,4 +1,4 @@
-#include "uvc_service.h"
+#include "v4l_service.h"
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <errno.h>
