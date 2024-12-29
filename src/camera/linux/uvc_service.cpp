@@ -133,8 +133,9 @@ bool uvc_service::open(lua::state& l) {
                 found_camera_input = inpt.index;
             }
         } else {
-            if ( ret != EINVAL) {
-                printf("Failed enum input: %d\n",ret);
+            auto e = errno;
+            if ( e != EINVAL) {
+                printf("Failed enum input: %d\n",e);
             }
             break;
         }
