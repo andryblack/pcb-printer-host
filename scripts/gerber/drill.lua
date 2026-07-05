@@ -13,7 +13,7 @@ function Dril:_init( )
 	self._tools = {}
 	self.points = {}
 	self._scale = 1.0
-	self._point_scale = 1.0/10000
+	self._point_scale = 1.0--1.0/10000
 end
 
 
@@ -50,24 +50,41 @@ function Dril:on_block( block )
 	if letter then
 		if letter == 'M' then
 			self:process_M_code(tonumber(code))
+			return
 		elseif letter == 'G' then
 			self:process_G_code(tonumber(code))
+			return
 		elseif letter == 'T' then
 			self._active_tool = self._tools[code] or self._tools[tonumber(code)]
 			if not self._active_tool and code~='0' and code~='00' then
 				error('unknown tool ' .. code)
 			end
-		elseif letter == 'X' then
-			local x = self:parse_point(code)
-			local y = self.points[#self.points].y
-			table.insert(self.points,{x=x,y=y,tool=self._active_tool})
-		elseif letter == 'Y' then
-			local y = self:parse_point(code)
-			local x = self.points[#self.points].x
-			table.insert(self.points,{x=x,y=y,tool=self._active_tool})
-		else
-			error('invalid command')
+			return
 		end
+	end
+
+	local code,tail = string.match(block,'G(%d%d)(.*)$')
+	if code and #tail > 0 then
+		if code == '00' or code == '01' then
+			block = tail
+		else
+			error('unexpected G code [' .. block .. ']')
+		end
+	end
+
+	local x = string.match(block,'^X(%d+)$')
+	if x then
+		local x = self:parse_point(x)
+		local y = self.points[#self.points].y
+		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
+		return
+	end
+
+	local y = string.match(block,'^Y(%d+)$')
+	if y then
+		local y = self:parse_point(y)
+		local x = self.points[#self.points].x
+		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
 		return
 	end
 	
@@ -91,9 +108,7 @@ function Dril:on_block( block )
 	if x1 then
 		x = self:parse_point(x1) 
 		y = self:parse_point(y1) 
-		x2 = self:parse_point(x2)
-		y2 = self:parse_point(y2)
-		table.insert(self.points,{x=x,y=y,tool=self._active_tool,x2=x2,y2=y2})
+		table.insert(self.points,{x=x,y=y,tool=self._active_tool})
 		return
 	end
 	
@@ -133,7 +148,11 @@ function Dril:parse_point( str_val )
 	if self._point_mode == 'LZ' then
 		str_val = str_val .. string.rep('0',self._point_width - #str_val)
 	end
-	return math.tointeger(str_val) * self._scale
+	local v = tonumber(str_val)
+	if not v then
+		error('invalid point [' .. str_val .. ']')
+	end
+	return v * self._scale
 end
 
 function Dril:process_header( block )
@@ -180,15 +199,18 @@ function Dril:process_header( block )
 				print('set format',b)
 				return
 			end
-			error('unknown header command ' .. a)
+			error('unknown header command 2 [' .. tostring(a)..'] [' .. tostring(b) .. ']')
 		end
 		a = string.match(block,'^(%u+)$')
 		if a then
 			if a == 'INCH' then
 				self:set_inches()
 				return
+			elseif a == 'METRIC' then
+				self:set_millimeters();
+				return;
 			end
-			error('unknown header command ' .. a)
+			error('unknown header command 1 [' .. tostring(a)..']')
 		end
 		local n,d = string.match(block,'^T(%d+).*C([%d%.]+)$')
 		if n then
@@ -199,7 +221,7 @@ function Dril:process_header( block )
 			return 
 		end
 		
-		error('unknown header command ' .. block)
+		error('unknown header command all [' .. block .. ']')
 	end
 end
 
@@ -216,6 +238,11 @@ function Dril:process_M_code( code )
 	elseif code == 72 then
 		-- Inch Measuring Mode
 		self:set_inches()
+	elseif code == 15 then
+		--self._header = true
+		--plunging the spinning tool to the routing depth
+	elseif code == 16 then
+		--plunging the spinning tool to out
 	else
 		error('unknown M code ' .. code)
 	end

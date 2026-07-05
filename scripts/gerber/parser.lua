@@ -494,6 +494,12 @@ end
 function Parser._EC.TA( self, data )
 	self:log_info('TA:',data)
 end
+function Parser._EC.TD( self, data )
+	self:log_info('TD:',data)
+end
+function Parser._EC.TO( self, data )
+	self:log_info('TO:',data)
+end
 function Parser._EC.SF( self, data )
 	self:log_info('SF:',data)
 end

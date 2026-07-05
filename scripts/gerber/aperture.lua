@@ -178,7 +178,7 @@ local ApertureMacros = class(Aperture,'gerber.ApertureMacros')
 ApertureMacros._primitives = {}
 
 ApertureMacros._primitives[1] = function(self,data) 
-	local exp,dia,x,y = string.match(data,'^([01]),([%d.$]+),([%d.%-$]+),([%d.%-$]+)')
+	local exp,dia,x,y = string.match(data,'^([01]),([^,]+),([^,]+),([^,]+)')
 	if not exp then
 		error('invalid circle data ' .. data)
 	end
@@ -194,7 +194,7 @@ ApertureMacros._primitives[1] = function(self,data)
 end
 
 ApertureMacros._primitives[4] = function(self,data) 
-	local exp,cnt,x,y,tail = string.match(data,'^([01]),([%d$]+),([%d.%-$]+),([%d.%-$]+),(.+)')
+	local exp,cnt,x,y,tail = string.match(data,'^([01]),([%d.]+),([^,]+),([^,]+),(.+)')
 	if not exp then
 		error('invalid outline data ' .. data)
 	end
@@ -204,7 +204,7 @@ ApertureMacros._primitives[4] = function(self,data)
 	local poly = {{x*self._s,y*self._s}}
 	cnt = tonumber(cnt)
 	for i=1,cnt do
-		x,y,tail = string.match(tail,'^([%d.%-$]+),([%d.%-$]+),(.+)')
+		x,y,tail = string.match(tail,'^([^,]+),([^,]+),(.+)')
 		if not x then
 			error('invalid outline data ' .. data .. ' at coord ' .. i)
 		end
@@ -245,7 +245,7 @@ end
 
 ApertureMacros._primitives[20] = function(self,data) 
 	-- MACRO1*21,1,$1,$2,0,0,$3*%
-	local exp,w,sx,sy,ex,ey = string.match(data,'^([01]),([%d.$]+),([%d.%-$]+),([%d.%-$]+),([%d.%-$]+),([%d.%-$]+)')
+	local exp,w,sx,sy,ex,ey = string.match(data,'^([01]),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)')
 	if not exp then
 		error('invalid Vector Line data ' .. data)
 	end
@@ -264,7 +264,7 @@ end
 
 
 ApertureMacros._primitives[21] = function(self,data) 
-	local exp,w,h,x,y,r = string.match(data,'^([01]),([%d.$]+),([%d.$]+),([%d.%-$]+),([%d.%-$]+),([%d.%-$]+)')
+	local exp,w,h,x,y,r = string.match(data,'^([01]),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)')
 	if not exp then
 		error('invalid Center Line data "' .. data .. '"')
 	end
@@ -391,7 +391,12 @@ function Aperture.macros( blocks , s)
 			table.insert(m._commands,{tonumber(code),tail})
 			m:primitive(tonumber(code),tail)
 		else
-			error('unexpeced macro data block',block)
+			if string.match(block,'^0%s.*$') then
+				print('comment',block)
+			else
+				error('unexpeced macro data block [' .. tostring(block) .. ']')
+			end
+			
 		end
 	end
 	return m
