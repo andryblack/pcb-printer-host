@@ -2,7 +2,7 @@
 #define _RASTERIZATOR_WRITE_H_INCLUDED_
 
 #include "rasterizator.h"
-#include <uv/buffer.h>
+#include <llae/buffer.h>
 #include <png.h>
 
 class RasterizatorWrite : public meta::object {
@@ -17,7 +17,7 @@ private:
 	static void write_fn(png_structp write, png_bytep data, size_t size);
 	static void flush_fn(png_structp);
 	void write_data(png_bytep data, size_t size);
-	uv::buffer_ptr m_png_data;
+	llae::buffer_ptr m_png_data;
 public:
 	RasterizatorWrite();
 	~RasterizatorWrite();
@@ -27,7 +27,7 @@ public:
 
 	void set_size(int64_t width,int64_t height);
 	void write(lua::state& l);
-	uv::buffer_ptr end_write(lua::state& l);
+	llae::buffer_ptr end_write(lua::state& l);
 };
 typedef common::intrusive_ptr<RasterizatorWrite> RasterizatorWritePtr; 
 

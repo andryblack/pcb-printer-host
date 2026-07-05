@@ -8,7 +8,7 @@
 #include "uv/handle.h"
 #include "llae/app.h"
 #include "llae/diag.h"
-#include "uv/buffer.h"
+#include "llae/buffer.h"
 
 #include <unistd.h>
 #include <syslog.h>
@@ -121,8 +121,6 @@ int main(int argc,char** argv) {
         }
     }
 
-	LLAE_DIAG(std::cout << "meta objects:  " << meta::object::get_total_count() << std::endl;)
-	LLAE_DIAG(std::cout << "buffers alloc: " << llae::named_alloc<uv::buffer>::get_allocated() << std::endl;)
-
+	
 	return retcode;
 }

@@ -38,7 +38,7 @@ void RasterizatorWrite::write_fn(png_structp write, png_bytep data, size_t size)
 void RasterizatorWrite::write_data(png_bytep data, size_t size) {
 	size_t pos = 0;
 	if (!m_png_data) {
-		m_png_data = uv::buffer::alloc(size*2);
+		m_png_data = llae::buffer::alloc(size*2);
 		m_png_data->set_len(0);
 	} else {
 		pos = m_png_data->get_len();
@@ -64,7 +64,7 @@ void RasterizatorWrite::write(lua::state& l) {
        1);
 }
 
-uv::buffer_ptr RasterizatorWrite::end_write(lua::state& l) {
+llae::buffer_ptr RasterizatorWrite::end_write(lua::state& l) {
 	png_write_end(m_write, m_info);
 	return std::move(m_png_data);
 }

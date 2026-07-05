@@ -1,8 +1,8 @@
 name = 'libpng'
-version = '1.6.40'
+version = '1.6.50'
 archive = 'libpng-' .. version .. '.tar.gz'
 url = 'https://deac-riga.dl.sourceforge.net/project/libpng/libpng16/'..version..'/' .. archive
-hash = 'ec4b597c3a9b1f8d2826575f530367b7'
+hash = 'eef2d3da281ae83ac8a8f5fd9fa9d325'
 dir = name .. '-' .. version
 
 function install()
