@@ -10,6 +10,7 @@
 #include <linux/kernel.h>
 #include <linux/types.h>          /* for videodev2.h */
 #include <linux/videodev2.h>
+#include <vector>
 
 static const size_t NUM_BUFFERS = 4;
 
@@ -19,25 +20,29 @@ private:
 	int m_fd;
 	struct v4l2_capability m_cap;
 	struct v4l2_format m_fmt;
-    struct v4l2_buffer m_buf;
-    struct v4l2_requestbuffers m_rb;
     void *m_buffers_mem[NUM_BUFFERS];
     size_t m_sizes[NUM_BUFFERS];
+    
     volatile bool m_active;
     volatile bool m_started;
     uv_thread_t m_read_thread;
     void process_frame();
+    void process_enc_frame();
     static void read_thread_func(void* arg);
     void read_thread(); 
     void start_thread();
     void stop_thread();
     bool m_need_encode;
-    uint8_t m_encode_buffer[640*480*2];
-
+    
     int m_enc_fd;
     struct v4l2_capability m_enc_cap;
+    void *m_enc_buffers_mem[NUM_BUFFERS];
+    size_t m_enc_sizes[NUM_BUFFERS];
+    void *m_enc_out_buffers_mem[NUM_BUFFERS];
+    size_t m_enc_out_sizes[NUM_BUFFERS];
+    std::vector<struct v4l2_buffer> m_enc_out_buffers;
     bool open_jpeg_encoder(lua::state& l);
-    size_t jpeg_encode(const void* src,size_t src_size,void* dst);
+    size_t jpeg_encode(const void* src,size_t src_size);
 public:
 	v4l_service();
 	~v4l_service();
