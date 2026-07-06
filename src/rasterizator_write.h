@@ -3,7 +3,7 @@
 
 #include "rasterizator.h"
 #include <llae/buffer.h>
-#include <png.h>
+#include "llae-private/png.h"
 
 class RasterizatorWrite : public meta::object {
 	META_OBJECT

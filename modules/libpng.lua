@@ -23,9 +23,12 @@ function install()
 		}
 	}
 	move_files{
-		['build/include/png.h'] = 		dir..'/png.h',
-		['build/include/pngconf.h'] = 	dir..'/pngconf.h',
+		['build/include/llae-private/png.h'] = 		dir..'/png.h',
+		['build/include/llae-private/pngconf.h'] = 	dir..'/pngconf.h',
 	}
+	isolate(dir,{'*.c','*.h'},{
+		['build/include/llae-private'] = 'llae-private/'
+	})
 end
 
 dependencies = {
