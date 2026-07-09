@@ -11,17 +11,47 @@
 #include <linux/types.h>          /* for videodev2.h */
 #include <linux/videodev2.h>
 #include <vector>
+#include <array>
 
 static const size_t NUM_BUFFERS = 4;
 
+class mmapped_buffer {
+private:
+    void *m_mem = nullptr;
+    size_t m_size = 0;
+public:
+    mmapped_buffer();
+    mmapped_buffer(mmapped_buffer&& r);
+    ~mmapped_buffer();
+    void release();
+    bool allocate(int fd,struct v4l2_buffer& buf);
+    bool allocate_mp(int fd,struct v4l2_buffer& buf);
+    void* get_mem() { return m_mem; }
+};
+
+class buffers_ring {
+private:
+    std::array<mmapped_buffer,NUM_BUFFERS> m_buffers;
+    std::array<bool,NUM_BUFFERS> m_queued;
+    v4l2_buf_type m_type;
+public:
+    explicit buffers_ring(v4l2_buf_type type);
+    void release();
+    bool allocate(int fd);
+    bool allocate_mp(int fd);
+    void* get_mem(size_t index) { return m_buffers[index].get_mem(); }
+    bool queue(int fd,struct v4l2_buffer& buf);
+    bool dequeue(int fd,struct v4l2_buffer& buf);
+    void queue_all(int fd);
+    bool get_free(size_t& index);
+};
 
 class v4l_service : public VideoSource {
 private:
 	int m_fd;
 	struct v4l2_capability m_cap;
 	struct v4l2_format m_fmt;
-    void *m_buffers_mem[NUM_BUFFERS];
-    size_t m_sizes[NUM_BUFFERS];
+    buffers_ring m_read_buffers = buffers_ring(V4L2_BUF_TYPE_VIDEO_CAPTURE);
     
     volatile bool m_active;
     volatile bool m_started;
@@ -36,10 +66,8 @@ private:
     
     int m_enc_fd;
     struct v4l2_capability m_enc_cap;
-    void *m_enc_buffers_mem[NUM_BUFFERS];
-    size_t m_enc_sizes[NUM_BUFFERS];
-    void *m_enc_out_buffers_mem[NUM_BUFFERS];
-    size_t m_enc_out_sizes[NUM_BUFFERS];
+    buffers_ring m_enc_buffers_write = buffers_ring(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+    buffers_ring m_enc_buffers_read = buffers_ring(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
     std::vector<struct v4l2_buffer> m_enc_out_buffers;
     bool open_jpeg_encoder(lua::state& l);
     size_t jpeg_encode(const void* src,size_t src_size);

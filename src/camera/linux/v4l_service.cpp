@@ -10,16 +10,185 @@
 #include <linux/types.h>          /* for videodev2.h */
 #include <linux/videodev2.h>
 
+#include <llae/logger.h>
 #include <lua/bind.h>
 
+
+mmapped_buffer::mmapped_buffer() {
+
+}
+
+mmapped_buffer::mmapped_buffer(mmapped_buffer&& o) : m_mem(o.m_mem), m_size(o.m_size) {
+    o.m_mem = nullptr;
+}
+
+void mmapped_buffer::release() {
+    if (m_mem) {
+        munmap(m_mem,m_size);
+        m_mem = nullptr;
+    }
+}
+
+bool mmapped_buffer::allocate(int fd, struct v4l2_buffer& buf) {
+    if (m_mem) {
+        LOG_ERROR("mmapped_buffer::allocate already allocated");
+        return false;
+    }
+
+    auto mem = mmap(0 /* start anywhere */ ,
+                          buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+                          buf.m.offset);
+    if(mem == MAP_FAILED) { 
+        LOG_ERROR("mmapped_buffer::allocate mmap failed");
+        return false;
+    }
+    m_size = buf.length;
+    m_mem = mem;
+    return true;
+}
+
+bool mmapped_buffer::allocate_mp(int fd, struct v4l2_buffer& buf) {
+    if (m_mem) {
+        LOG_ERROR("mmapped_buffer::allocate_mp already allocated");
+        return false;
+    }
+
+    if (buf.length != 1) {
+        LOG_ERROR("mmapped_buffer::allocate_mp unexpected planes " << buf.length);
+        return false;
+    }
+
+    auto& plane = buf.m.planes[0];
+
+    auto mem = mmap(0 /* start anywhere */ ,
+                          plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
+                          plane.m.mem_offset);
+    if(mem == MAP_FAILED) { 
+        LOG_ERROR("mmapped_buffer::alloc mmap failed");
+        return false;
+    }
+    m_size = plane.length;
+    m_mem = mem;
+    return true;
+}
+
+mmapped_buffer::~mmapped_buffer() {
+    release();
+}
+
+buffers_ring::buffers_ring(v4l2_buf_type type) : m_type(type) {
+    for (auto& v:m_queued) {
+        v = false;
+    }
+}
+
+void buffers_ring::release() {
+    for (auto& b:m_buffers) {
+        b.release();
+    }
+    for (auto& v:m_queued) {
+        v = false;
+    }
+}
+
+bool buffers_ring::allocate(int fd) {
+    
+    struct v4l2_buffer buf;
+    size_t index = 0;
+    for (auto& b:m_buffers) {
+        memset(&buf, 0, sizeof(buf));
+        buf.index = index++;
+        buf.type = m_type;
+        buf.memory = V4L2_MEMORY_MMAP;
+        auto ret = IOCTL_VIDEO(fd, VIDIOC_QUERYBUF, &buf);
+        if (ret < 0) {
+            LOG_ERROR("buffers_ring::allocate failed to query enc buffe" << ret);
+            return false;
+        }
+        if (!b.allocate(fd,buf)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool buffers_ring::allocate_mp(int fd) {
+    
+    struct v4l2_buffer buf;
+    size_t index = 0;
+    for (auto& b:m_buffers) {
+        memset(&buf, 0, sizeof(buf));
+        buf.index = index++;
+        buf.type = m_type;
+        buf.memory = V4L2_MEMORY_MMAP;
+        auto ret = IOCTL_VIDEO(fd, VIDIOC_QUERYBUF, &buf);
+        if (ret < 0) {
+            LOG_ERROR("buffers_ring::allocate failed to query enc buffe" << ret);
+            return false;
+        }
+        if (!b.allocate_mp(fd,buf)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool buffers_ring::queue(int fd,struct v4l2_buffer& buf) {
+    if (m_queued[buf.index]) {
+        LOG_ERROR("buffers_ring::queue already queued" );
+        return false;
+    }
+    auto ret = IOCTL_VIDEO(fd, VIDIOC_QBUF, &buf);
+    if (ret < 0) {
+        LOG_ERROR("buffers_ring::queue failed queue buffer " << ret );
+        return false;
+    } else {
+        m_queued[buf.index] = true;
+        return true;
+    }
+}
+
+bool buffers_ring::dequeue(int fd,struct v4l2_buffer& buf) {
+    memset(&buf, 0, sizeof(buf));
+    buf.type = m_type;
+    buf.memory = V4L2_MEMORY_MMAP;
+    int ret = IOCTL_VIDEO(fd, VIDIOC_DQBUF, &buf);
+    if(ret < 0) {
+        LOG_ERROR("buffers_ring::dequeue failed dequeue buffer " << ret);
+        return false;
+    }
+    m_queued[buf.index] = 0;
+    return true;
+}
+
+void buffers_ring::queue_all(int fd) {
+    struct v4l2_buffer buf;
+    size_t index = 0;
+    for (auto& b:m_buffers) {
+        memset(&buf, 0, sizeof(buf));
+        buf.index = index++;
+        if (m_queued[buf.index]) {
+             continue;
+        }
+        buf.type = m_type;
+        buf.memory = V4L2_MEMORY_MMAP;
+        queue(fd,buf);
+    }
+}
+
+bool buffers_ring::get_free(size_t& index) {
+    index = 0;
+    for (auto& b:m_queued) {
+        if (b) return true;
+        ++index;
+    }
+    return false;
+}
 
 #define HEADERFRAME1 0xaf
 
 v4l_service::v4l_service() : m_fd(-1),m_read_thread(0),m_active(false),m_started(false),m_enc_fd(-1) {
     m_need_encode = false;
-    memset(m_buffers_mem,0,sizeof(m_buffers_mem));
-    memset(m_enc_buffers_mem,0,sizeof(m_enc_buffers_mem));
-    memset(m_enc_out_buffers_mem,0,sizeof(m_enc_out_buffers_mem));
 }
 
 static const char* vf_tostr(int vf) {
@@ -45,20 +214,9 @@ void v4l_service::close() {
 	m_active = false;
 	stop_thread();
 
-    for (size_t i=0;i<NUM_BUFFERS;++i) {
-        if (m_buffers_mem[i]) {
-            munmap(m_buffers_mem[i],m_sizes[i]);
-            m_buffers_mem[i] = 0;
-        }
-        if (m_enc_buffers_mem[i]) {
-            munmap(m_enc_buffers_mem[i],m_enc_sizes[i]);
-            m_enc_buffers_mem[i] = 0;
-        }
-         if (m_enc_out_buffers_mem[i]) {
-            munmap(m_enc_out_buffers_mem[i],m_enc_out_sizes[i]);
-            m_enc_out_buffers_mem[i] = 0;
-        }
-    }
+    m_read_buffers.release();
+    m_enc_buffers_write.release();
+    m_enc_buffers_read.release();
 
 	if (m_fd != -1) {
 		CLOSE_VIDEO(m_fd);
@@ -98,25 +256,22 @@ static const char* get_fmt_str(uint32_t fmt) {
 }
 
 size_t v4l_service::jpeg_encode(const void* src,size_t src_size) {
-    while (m_enc_out_buffers.empty()) {
-        struct v4l2_buffer buf;
-        memset(&buf, 0, sizeof(buf));
-        buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-        buf.memory = V4L2_MEMORY_MMAP;
 
-        int ret = IOCTL_VIDEO(m_fd, VIDIOC_DQBUF, &buf);
-        if(ret < 0) {
-            printf("Unable to dequeue enc out buffer\n");
-            return;
-        }
-        m_enc_out_buffers.push_back(buf);
+    size_t index = 0;
+    if (!m_enc_buffers_write.get_free(index)) {
+        LOG_ERROR("not found free enc buffers");
+        return 0;
     }
-    auto idx = m_enc_out_buffers.front();
     struct v4l2_buffer buf;
-    memset(&buf, 0, sizeof(buf));
-    buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    buf.memory = V4L2_MEMORY_MMAP;
-    buf.index = idx;
+    buf.index = index;
+    ::memcpy(m_enc_buffers_write.get_mem(index),src,src_size);
+    struct v4l2_plane plane;
+    ::memset(&plane,0,sizeof(plane));
+    plane.bytesused = src_size;
+    plane.data_offset = 0;
+    buf.length = 1;
+    buf.m.planes = &plane;
+    m_enc_buffers_write.queue(m_enc_fd,buf);;
 
     return 0;
 }
@@ -193,28 +348,11 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
         printf("Unable to allocate enc capture buffers\n");
         return false;
     }
-    for(size_t i = 0; i < NUM_BUFFERS; i++) {
-        struct v4l2_buffer buf;
 
-        memset(&buf, 0, sizeof(buf));
-        buf.index = i;
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-        buf.memory = V4L2_MEMORY_MMAP;
-        ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_QUERYBUF, &buf);
-        if(ret < 0) {
-            printf("Unable to query enc buffer %d\n",i);
-            return false;
-        }
-
-        m_enc_buffers_mem[i] = mmap(0 /* start anywhere */ ,
-                          buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, m_enc_fd,
-                          buf.m.offset);
-        m_enc_sizes[i] = buf.length;
-        if(m_buffers_mem[i] == MAP_FAILED) {
-            printf("Unable to map enc buffer\n");
-            return false;
-        }
+    if (!m_enc_buffers_read.allocate_mp(m_enc_fd)) {
+        return false;
     }
+   
 
     memset(&rb, 0, sizeof(rb));
     rb.count = NUM_BUFFERS;
@@ -226,30 +364,9 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
         printf("Unable to allocate enc output buffers\n");
         return false;
     }
-    m_enc_out_buffers.clear();
-    m_enc_out_buffers.reserve(NUM_BUFFERS);
-    for(size_t i = 0; i < NUM_BUFFERS; i++) {
-        struct v4l2_buffer buf;
 
-        memset(&buf, 0, sizeof(buf));
-        buf.index = i;
-        buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-        buf.memory = V4L2_MEMORY_MMAP;
-        ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_QUERYBUF, &buf);
-        if(ret < 0) {
-            printf("Unable to query enc output buffer %d\n",i);
-            return false;
-        }
-
-        m_enc_out_buffers_mem[i] = mmap(0 /* start anywhere */ ,
-                          buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, m_enc_fd,
-                          buf.m.offset);
-        m_enc_out_sizes[i] = buf.length;
-        if(m_buffers_out_mem[i] == MAP_FAILED) {
-            printf("Unable to map enc out buffer\n");
-            return false;
-        }
-        m_enc_out_buffers.push_back(i);
+    if (!m_enc_buffers_write.allocate_mp(m_enc_fd)) {
+        return false;
     }
                 
     return true;
@@ -390,31 +507,10 @@ bool v4l_service::open(lua::state& l) {
         printf("Unable to allocate buffers\n");
         return false;
     }
-    for(size_t i = 0; i < NUM_BUFFERS; i++) {
-        struct v4l2_buffer buf;
 
-        memset(&buf, 0, sizeof(buf));
-        buf.index = i;
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_MMAP;
-        ret = IOCTL_VIDEO(m_fd, VIDIOC_QUERYBUF, &buf);
-        if(ret < 0) {
-            printf("Unable to query buffer %d\n",i);
-            return false;
-        }
-
-		m_buffers_mem[i] = mmap(0 /* start anywhere */ ,
-                          buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd,
-                          buf.m.offset);
-        m_sizes[i] = buf.length;
-        if(m_buffers_mem[i] == MAP_FAILED) {
-            printf("Unable to map buffer\n");
-            return false;
-        }
+    if (!m_read_buffers.allocate(m_fd)) {
+        return false;
     }
-
-
-    
 
     m_active = true;
     return true;
@@ -477,59 +573,40 @@ void v4l_service::process_enc_frame() {
         return;
     }
     struct v4l2_buffer buf;
-    memset(&buf, 0, sizeof(buf));
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    buf.memory = V4L2_MEMORY_MMAP;
-
-    int ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_DQBUF, &buf);
-    if(ret < 0) {
-        printf("Unable to dequeue enc buffer\n");
+    if (!m_enc_buffers_read.dequeue(m_enc_fd,buf)) {
         return;
     }
+
     for (auto i=0;i<buf.length;++i) {
         auto& p = buf.m.planes[i];
         if (p.bytesused > HEADERFRAME1 && m_need_frame) {
-            put_frame(m_buffers_mem[buf.index], p.bytesused,buf.timestamp);
+            put_frame(m_enc_buffers_read.get_mem(buf.index), p.bytesused,buf.timestamp);
             break;
         }
     }
-    
-    ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_QBUF, &buf);
-    if(ret < 0) {
-        printf("Unable to queue enc buffer\n");
-        return;
-    }
+    m_enc_buffers_read.queue(m_enc_fd,buf);
 }
+
 void v4l_service::process_frame() {
 	if (!m_started) {
 		return;
 	}
     struct v4l2_buffer buf;
-	memset(&buf, 0, sizeof(buf));
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
-
-    int ret = IOCTL_VIDEO(m_fd, VIDIOC_DQBUF, &buf);
-    if(ret < 0) {
-        printf("Unable to dequeue buffer\n");
+	if (!m_read_buffers.dequeue(m_fd,buf)) {
         return;
     }
+   
     if(buf.bytesused > HEADERFRAME1 && m_need_frame) { 
     	
         if (m_need_encode) {
-            jpeg_encode(m_buffers_mem[buf.index],buf.bytesused);
+            jpeg_encode(m_read_buffers.get_mem(buf.index),buf.bytesused);
         } else {
-            put_frame(m_buffers_mem[buf.index], buf.bytesused,buf.timestamp);
+            put_frame(m_read_buffers.get_mem(buf.index), buf.bytesused,buf.timestamp);
         }
 
     }
     
-
-    ret = IOCTL_VIDEO(m_fd, VIDIOC_QBUF, &buf);
-    if(ret < 0) {
-        printf("Unable to queue buffer\n");
-        return;
-    }
+    m_read_buffers.queue(m_fd,buf);
 
 }
 
@@ -538,30 +615,12 @@ void v4l_service::start() {
 		return;
 	}
 
-	for(size_t i = 0; i < NUM_BUFFERS; ++i) {
-        struct v4l2_buffer buf;
-        memset(&buf, 0, buf);
-        buf.index = i;
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_MMAP;
-        int ret = IOCTL_VIDEO(m_fd, VIDIOC_QBUF, &buf);
-        if(ret < 0) {
-            printf("start: Unable to queue buffer %d\n",i);
-        }
-    }
+    m_read_buffers.queue_all(m_fd);
+
+	
 
     if (m_need_encode) {
-        for(size_t i = 0; i < NUM_BUFFERS; ++i) {
-            struct v4l2_buffer buf;
-            memset(&buf, 0, buf);
-            buf.index = i;
-            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-            buf.memory = V4L2_MEMORY_MMAP;
-            int ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_QBUF, &buf);
-            if(ret < 0) {
-                printf("start: Unable to queue enc buffer %d\n",i);
-            }
-        }
+        m_enc_buffers_read.queue_all(m_enc_fd);
     }
 
 	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
