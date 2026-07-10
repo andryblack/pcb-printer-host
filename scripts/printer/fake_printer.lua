@@ -20,6 +20,7 @@ function FakePrinter:_init( delegate )
 end
 
 function FakePrinter:start()
+	log.info('Start fake printer')
 	async.run(function()
 		while(true) do
 			local d = table.remove(self._responses)

@@ -1,3 +1,4 @@
+#if 1
 #include <iostream>
 #include <string>
 
@@ -124,3 +125,5 @@ int main(int argc,char** argv) {
 	
 	return retcode;
 }
+
+#endif

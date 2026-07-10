@@ -1,6 +1,5 @@
 print(args[0])
 
-local dir = string.match(args[0],'(.*)/.*')
 
 if not math.pow then
 	math.pow = function(base,p)
@@ -31,8 +30,14 @@ local default_config = {
 	cmodules = 'no',
 }
 
+log.info("start")
+
 async.run(function()
+	log.info("start")
+
 	local res,err = xpcall(function()
+
+		log.info("start")
 
 		application = {}
 		application.args = utils.parse_args(_G.args)
@@ -61,6 +66,8 @@ async.run(function()
 		if not fs.isdir(files_root .. '/.printer') then
 		    fs.mkdir(files_root .. '/.printer')
 		end
+
+		log.info("start")
 
 		application.http = http_server.new( config )
 		application.http:start()

@@ -3,26 +3,26 @@ project 'pcb-printer-host'
 -- @modules@
 module 'llae'
 module 'libpng'
+module 'git://github.com/andryblack/gerber-parser.git;proto=https'
 
 -- @lock@
-lock_module{"llae","93884b3996abc71cc183e2406390552b9abbc721"}
 -- @endlock@
 
 config('llae','extern_main',true)
 
-cmodule 'clipperlib'
 cmodule 'rasterizator'
 cmodule 'camera'
 
 premake{
 	project = [[
+		includedirs{
+			'include'
+		}
 		files{
 			<%= format_file('src','*.cpp')%>,
 			<%= format_file('src','*.h')%>,
 
-			<%= format_file('src/clipperlib','*.cpp')%>,
-			<%= format_file('src/clipperlib','*.h')%>,
-
+			
 			<%= format_file('src/camera','*.cpp')%>,
 			<%= format_file('src/camera','*.h')%>,
 		}

@@ -5,9 +5,9 @@ local async = require 'llae.async'
 local PCB = class(nil,'printer.PCB')
 
 local Parser = require 'gerber.parser'
-local Bounds = require 'geom.bounds'
+local Bounds = require 'gerber.geom.bounds'
 local SvgGenerator = require 'svg.generator'
-local Geometry = require 'geom.geometry'
+local Geometry = require 'gerber.geom.geometry'
 local DrilParser = require 'gerber.drill'
 local Protocol = require 'printer.protocol'
 local rasterizator = require 'rasterizator'
