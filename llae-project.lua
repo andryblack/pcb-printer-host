@@ -4,6 +4,10 @@ project 'pcb-printer-host'
 module 'llae'
 module 'libpng'
 
+-- @lock@
+lock_module{"llae","93884b3996abc71cc183e2406390552b9abbc721"}
+-- @endlock@
+
 config('llae','extern_main',true)
 
 cmodule 'clipperlib'
