@@ -16,6 +16,11 @@ local sidebar = {
 		icon = 'crosshair'
 	},
 	{
+		name = 'calibration',
+		text = 'Calibration',
+		icon = 'compass'
+	},
+	{
 		name = 'pid',
 		text = 'PID',
 		icon = 'thermometer'

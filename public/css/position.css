@@ -1,0 +1,612 @@
+.viewport-video {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  object-fit: contain;
+  transform-origin: center center;
+}
+#svg-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+#svg-content {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+  position: absolute;
+  pointer-events: none;
+}
+.position-view {
+  position: relative;
+  border: 1px solid black;
+  overflow: hidden;
+  max-width: 100%;
+}
+.position-stack {
+  position: relative;
+  max-width: 100%;
+}
+.position-panels {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.jog-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+}
+.jog-side {
+  position: absolute;
+  display: flex;
+}
+.jog-top .jog-btn,
+.jog-bottom .jog-btn {
+  margin: 0 3px;
+}
+.jog-left .jog-btn,
+.jog-right .jog-btn {
+  margin: 3px 0;
+}
+.jog-top {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: row;
+}
+.jog-bottom {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: row;
+}
+.jog-left {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+}
+.jog-right {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+}
+button.jog-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  line-height: 0;
+  width: 56px;
+  height: 40px;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.15);
+}
+button.jog-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+button.jog-btn svg {
+  width: 56px;
+  height: 40px;
+  display: block;
+  pointer-events: none;
+}
+.jog-btn-outline {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 3.5;
+  pointer-events: none;
+}
+.jog-btn-bg {
+  fill: transparent;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 1.5;
+  transition: fill 0.15s;
+}
+.jog-btn-arrow-outline {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.jog-btn-arrow {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.jog-btn-label {
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 2.5;
+  paint-order: stroke fill;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+  pointer-events: none;
+}
+.jog-btn:active .jog-btn-bg,
+.jog-btn.touch-press .jog-btn-bg {
+  fill: rgba(0, 0, 0, 0.45);
+}
+.pnt-panel {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 3;
+}
+.pnt-top-left {
+  top: 8px;
+  left: 8px;
+}
+.pnt-bottom-right {
+  bottom: 8px;
+  right: 8px;
+}
+.pnt-panel-inner {
+  position: relative;
+  width: 148px;
+}
+.pnt-panel-svg {
+  width: 148px;
+  height: 100px;
+  display: block;
+  pointer-events: none;
+}
+.pnt-panel-outline {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 3.5;
+  pointer-events: none;
+}
+.pnt-panel-bg {
+  fill: transparent;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 1.5;
+  transition: fill 0.15s;
+  pointer-events: none;
+}
+.pnt-panel-title {
+  fill: rgba(120, 200, 255, 0.98);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 2.5;
+  paint-order: stroke fill;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 600;
+  pointer-events: none;
+}
+.pnt-panel-kind {
+  fill: rgba(255, 255, 255, 0.75);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 2;
+  paint-order: stroke fill;
+  font-size: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  pointer-events: none;
+}
+.pnt-panel-val {
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 2;
+  paint-order: stroke fill;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+  pointer-events: none;
+}
+.pnt-panel-actions {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+button.pnt-action-btn {
+  flex: 1;
+  width: 64px;
+  height: 28px;
+  pointer-events: auto;
+}
+button.pnt-action-btn svg {
+  width: 64px;
+  height: 28px;
+}
+.pnt-action-label {
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 2.5;
+  paint-order: stroke fill;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 600;
+  pointer-events: none;
+}
+.laser-panel {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 3;
+}
+.laser-top-right {
+  top: 8px;
+  right: 8px;
+}
+.laser-panel-inner {
+  position: relative;
+  width: 148px;
+}
+.laser-panel-svg {
+  width: 148px;
+  height: 82px;
+  display: block;
+  pointer-events: none;
+}
+.laser-panel-outline {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 3.5;
+  pointer-events: none;
+}
+.laser-panel-bg {
+  fill: transparent;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 1.5;
+  transition: fill 0.15s;
+  pointer-events: none;
+}
+.laser-panel-title {
+  fill: rgba(255, 160, 120, 0.98);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 2.5;
+  paint-order: stroke fill;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 600;
+  pointer-events: none;
+}
+.laser-panel-controls {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  pointer-events: none;
+}
+.laser-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  pointer-events: none;
+}
+button.laser-switch-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  line-height: 0;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.15);
+}
+button.laser-switch-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+button.laser-switch-btn svg {
+  width: 44px;
+  height: 24px;
+  display: block;
+  pointer-events: none;
+}
+.laser-switch-track {
+  fill: rgba(0, 0, 0, 0.35);
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.laser-switch-knob {
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+.laser-switch-knob-bg {
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+button.laser-switch-btn[aria-pressed="true"] .laser-switch-track {
+  fill: rgba(200, 80, 40, 0.65);
+}
+button.laser-switch-btn[aria-pressed="true"] .laser-switch-knob {
+  transform: translateX(20px);
+}
+button.laser-switch-btn.touch-press:not(:disabled) .laser-switch-track {
+  fill: rgba(0, 0, 0, 0.5);
+}
+.laser-pwm-value {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.9);
+  min-width: 36px;
+  text-align: right;
+  pointer-events: none;
+}
+.laser-pwm-slider {
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.laser-pwm-slider:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.laser-pwm-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65);
+}
+.laser-pwm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+.laser-pwm-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65);
+}
+.laser-pwm-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .jog-btn:hover .jog-btn-bg {
+    fill: rgba(0, 0, 0, 0.3);
+  }
+  .pnt-panel:hover .pnt-panel-bg {
+    fill: rgba(0, 0, 0, 0.25);
+  }
+  .laser-panel:hover .laser-panel-bg {
+    fill: rgba(0, 0, 0, 0.25);
+  }
+}
+
+@media (max-width: 767px) {
+  .position-view {
+    display: block;
+    overflow: visible;
+    height: auto !important;
+    width: 100% !important;
+  }
+  #svg-viewport {
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+  .position-panels {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "laser laser"
+      "pnt1 pnt2";
+    gap: 8px;
+    margin-top: 8px;
+    pointer-events: auto;
+  }
+  #laser-panel {
+    grid-area: laser;
+    position: static;
+  }
+  #pnt1-corner {
+    grid-area: pnt1;
+    position: static;
+  }
+  #pnt2-corner {
+    grid-area: pnt2;
+    position: static;
+  }
+  .laser-panel-inner,
+  .pnt-panel-inner {
+    position: relative;
+    width: 100%;
+  }
+  #laser-panel .laser-panel-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    min-height: 40px;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.75);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  }
+  #laser-panel .laser-panel-svg {
+    display: none;
+  }
+  #laser-panel .laser-panel-inner::before {
+    content: 'Laser';
+    flex: 0 0 auto;
+    color: rgba(200, 90, 40, 1);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  #laser-panel .laser-panel-controls {
+    position: static;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    pointer-events: auto;
+  }
+  #laser-panel .laser-switch-row {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    gap: 6px;
+  }
+  #laser-panel .laser-pwm-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 12px;
+  }
+  #laser-panel .laser-pwm-value {
+    color: rgba(0, 0, 0, 0.85);
+    text-shadow: none;
+  }
+  #pnt1-corner .pnt-panel-svg,
+  #pnt2-corner .pnt-panel-svg {
+    position: static;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  #pnt1-corner .pnt-panel-actions,
+  #pnt2-corner .pnt-panel-actions {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    margin-top: 0;
+    display: flex;
+    gap: 6px;
+  }
+  #pnt1-corner button.pnt-action-btn,
+  #pnt2-corner button.pnt-action-btn {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    height: 26px;
+  }
+  #pnt1-corner button.pnt-action-btn svg,
+  #pnt2-corner button.pnt-action-btn svg {
+    width: 100%;
+    height: 26px;
+  }
+  button.jog-btn {
+    width: 44px;
+    height: 32px;
+  }
+  button.jog-btn svg {
+    width: 44px;
+    height: 32px;
+  }
+  .jog-top .jog-btn,
+  .jog-bottom .jog-btn {
+    margin: 0 2px;
+  }
+  .jog-left .jog-btn,
+  .jog-right .jog-btn {
+    margin: 2px 0;
+  }
+  .jog-top {
+    top: 4px;
+  }
+  .jog-bottom {
+    bottom: 4px;
+  }
+  .jog-left {
+    left: 2px;
+  }
+  .jog-right {
+    right: 2px;
+  }
+  .jog-btn-label {
+    font-size: 9px;
+  }
+  .jog-btn-outline,
+  .jog-btn-arrow-outline {
+    stroke-width: 2.5;
+  }
+  .jog-btn-bg,
+  .jog-btn-arrow {
+    stroke-width: 1.2;
+  }
+}
+
+@media (max-width: 767px) and (orientation: landscape) {
+  .position-view {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) min(220px, 38vw);
+    gap: 8px;
+    align-items: start;
+  }
+  #svg-viewport {
+    grid-column: 1;
+    min-width: 0;
+    margin: 0;
+  }
+  .position-panels {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 0;
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  #laser-panel,
+  #pnt1-corner,
+  #pnt2-corner {
+    position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 399px) {
+  button.jog-btn {
+    width: 38px;
+    height: 28px;
+  }
+  button.jog-btn svg {
+    width: 38px;
+    height: 28px;
+  }
+  .jog-btn-label {
+    font-size: 8px;
+  }
+}

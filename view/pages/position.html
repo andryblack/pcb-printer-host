@@ -1,30 +1,12 @@
+<div id="alert_placeholder"></div>
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-
-  
-
-  <div class="btn-toolbar mb-2 mb-md-0 flex-wrap">
-    
-  </div>
-  
-
-  <div class="" style="width: 100%;">
-  Laser PWM:
-    <div class="row mb-1" >
-      <span id="laser-pwm-value" class="col-sm-1"></span><input type="range" min="0" max="1024" value="0" class="slider col-sm-10" id="laser-pwm">
-    </div>
-  </div>
-
-</div>
-
-<div id = "alert_placeholder"></div>
-
-<div class="row" >
-  <div class="col">
-    <div class="pcb-view-cont" style="width: 640px; height: 480px; border:1px solid black;">
-      <div id="svg-viewport" style="width: 100%; height: 100%" >
+<div class="row">
+  <div class="col px-2 px-md-3">
+    <div class="position-stack">
+    <div class="pcb-view-cont position-view" data-aspect="<%= settings.camera_size_x / settings.camera_size_y %>">
+      <div id="svg-viewport">
         <img id="video-display" class="viewport-video" src="/video" />
-        <svg id="svg-content" viewBox="0 0 <%= settings.camera_size_x %> <%= settings.camera_size_y %>" xmlns="http://www.w3.org/2000/svg" >
+        <svg id="svg-content" viewBox="0 0 <%= settings.camera_size_x %> <%= settings.camera_size_y %>" xmlns="http://www.w3.org/2000/svg">
           <g transform="translate(<%= settings.camera_pos_x %>, <%= settings.camera_pos_y %>)" opacity="0.4">
             <line x1="-100" y1="0" x2="100" y2="0" style="stroke:rgb(255,0,0);stroke-width:1" />
             <line x1="0" y1="-100" x2="0" y2="100" style="stroke:rgb(255,0,0);stroke-width:1" />
@@ -32,256 +14,575 @@
             <circle r="50" stroke="rgb(0,0,255)" stroke-width="1" fill="none" />
           </g>
         </svg>
+
+        <div class="jog-overlay" id="jog-overlay">
+          <div class="jog-side jog-top">
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="y" data-delta="0.1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M28 10 L22 20 L34 20 Z"/>
+              <path class="jog-btn-arrow" d="M28 10 L22 20 L34 20 Z"/>
+              <text class="jog-btn-label" x="28" y="34" text-anchor="middle">0.1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="y" data-delta="1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M28 10 L22 20 L34 20 Z"/>
+              <path class="jog-btn-arrow" d="M28 10 L22 20 L34 20 Z"/>
+              <text class="jog-btn-label" x="28" y="34" text-anchor="middle">1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="y" data-delta="10" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M28 10 L22 20 L34 20 Z"/>
+              <path class="jog-btn-arrow" d="M28 10 L22 20 L34 20 Z"/>
+              <text class="jog-btn-label" x="28" y="34" text-anchor="middle">10</text>
+            </svg></button>
+          </div>
+
+          <div class="jog-side jog-bottom">
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="y" data-delta="-0.1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M28 30 L22 20 L34 20 Z"/>
+              <path class="jog-btn-arrow" d="M28 30 L22 20 L34 20 Z"/>
+              <text class="jog-btn-label" x="28" y="14" text-anchor="middle">0.1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="y" data-delta="-1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M28 30 L22 20 L34 20 Z"/>
+              <path class="jog-btn-arrow" d="M28 30 L22 20 L34 20 Z"/>
+              <text class="jog-btn-label" x="28" y="14" text-anchor="middle">1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="y" data-delta="-10" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M28 30 L22 20 L34 20 Z"/>
+              <path class="jog-btn-arrow" d="M28 30 L22 20 L34 20 Z"/>
+              <text class="jog-btn-label" x="28" y="14" text-anchor="middle">10</text>
+            </svg></button>
+          </div>
+
+          <div class="jog-side jog-left">
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="x" data-delta="-0.1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M10 20 L20 14 L20 26 Z"/>
+              <path class="jog-btn-arrow" d="M10 20 L20 14 L20 26 Z"/>
+              <text class="jog-btn-label" x="38" y="24" text-anchor="middle">0.1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="x" data-delta="-1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M10 20 L20 14 L20 26 Z"/>
+              <path class="jog-btn-arrow" d="M10 20 L20 14 L20 26 Z"/>
+              <text class="jog-btn-label" x="38" y="24" text-anchor="middle">1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="x" data-delta="-10" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M10 20 L20 14 L20 26 Z"/>
+              <path class="jog-btn-arrow" d="M10 20 L20 14 L20 26 Z"/>
+              <text class="jog-btn-label" x="38" y="24" text-anchor="middle">10</text>
+            </svg></button>
+          </div>
+
+          <div class="jog-side jog-right">
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="x" data-delta="0.1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M46 20 L36 14 L36 26 Z"/>
+              <path class="jog-btn-arrow" d="M46 20 L36 14 L36 26 Z"/>
+              <text class="jog-btn-label" x="18" y="24" text-anchor="middle">0.1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="x" data-delta="1" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M46 20 L36 14 L36 26 Z"/>
+              <path class="jog-btn-arrow" d="M46 20 L36 14 L36 26 Z"/>
+              <text class="jog-btn-label" x="18" y="24" text-anchor="middle">1</text>
+            </svg></button>
+            <button type="button" class="jog-btn enabled-on-printer-state-idle" data-axis="x" data-delta="10" disabled><svg viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg">
+              <rect class="jog-btn-outline" x="1" y="1" width="54" height="38" rx="4"/>
+              <rect class="jog-btn-bg" x="1" y="1" width="54" height="38" rx="4"/>
+              <path class="jog-btn-arrow-outline" d="M46 20 L36 14 L36 26 Z"/>
+              <path class="jog-btn-arrow" d="M46 20 L36 14 L36 26 Z"/>
+              <text class="jog-btn-label" x="18" y="24" text-anchor="middle">10</text>
+            </svg></button>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-  
-  <div class="col-sm-4 ml-0 no-gutters ml-0"  >
-    <form class="col no-gutters ml-0" >
-        <div class="row no-gutters ml-0" >
-          <div class="col m-0" > 
-              <button id="printer-zero-x" class="btn btn-outline-danger">
-                <span data-feather="x-circle"></span>Zero X</button>
-          </div>
-          <div class="col m-0 ml-2" > 
-            <button id="printer-zero-y" class="btn btn-outline-danger">
-              <span data-feather="x-circle"></span>Zero Y</button>
-          </div>
-        </div>
-        <div class="row no-gutters m-0 mt-2">
-          <div class="col-sm-4 m-0"> 
-            <input type="number" class="form-control" id="calibrate-flash-time" value="<%= printer.pcb:get_config().flash_time %>" />
-          </div>
-          <div class="col-sm-4 ml-1"> 
-            <input type="number" class="form-control" id="calibrate-speed" value="<%= printer.pcb:get_config().speed %>" />
-          </div>
-          <div class="col-sm-2 ml-1"> 
-            <button id="calibrate" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
-        disabled="true">
-                <span data-feather="compass"></span>
-            </button> 
-          </div>
-        </div>
-        <div class="row no-gutters  m-0 mt-2">
-          <div class="col-sm-4">
-            <div class="dropdown no-gutters  m-0">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdown-select-step-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                  1.0
-                </button>
-                <div class="dropdown-menu" aria-labelledby="dropdown-select-step-button" id="dropdown-select-step-items">
-                  <a class="dropdown-item" href="#">0.1</a>
-                  <a class="dropdown-item" href="#">1.0</a>
-                  <a class="dropdown-item" href="#">10.0</a>
-                  <a class="dropdown-item" href="#">100.0</a>
+
+        <div class="position-panels" id="position-panels">
+          <div class="laser-panel laser-top-right" id="laser-panel">
+            <div class="laser-panel-inner">
+              <svg viewBox="0 0 148 82" xmlns="http://www.w3.org/2000/svg" class="laser-panel-svg">
+                <rect class="laser-panel-outline" x="1" y="1" width="146" height="80" rx="4"/>
+                <rect class="laser-panel-bg" x="1" y="1" width="146" height="80" rx="4"/>
+                <text class="laser-panel-title" x="74" y="16" text-anchor="middle">Laser</text>
+              </svg>
+              <div class="laser-panel-controls">
+                <div class="laser-switch-row">
+                  <button type="button" class="laser-switch-btn enabled-on-printer-state-idle" id="laser-switch" aria-pressed="false" disabled><svg viewBox="0 0 44 24" xmlns="http://www.w3.org/2000/svg">
+                    <rect class="laser-switch-track" x="1" y="1" width="42" height="22" rx="11"/>
+                    <g class="laser-switch-knob">
+                      <circle class="laser-switch-knob-bg" cx="12" cy="12" r="9"/>
+                    </g>
+                  </svg></button>
+                  <span class="laser-pwm-value" id="laser-pwm-value">0%</span>
                 </div>
+                <input type="range" min="0" max="1024" value="0" class="laser-pwm-slider enabled-on-printer-state-idle" id="laser-pwm" disabled>
+              </div>
+            </div>
+          </div>
+
+          <div class="pnt-panel pnt-top-left d-none" id="pnt1-corner">
+            <div class="pnt-panel-inner">
+              <svg viewBox="0 0 148 100" xmlns="http://www.w3.org/2000/svg" class="pnt-panel-svg">
+                <rect class="pnt-panel-outline" x="1" y="1" width="146" height="98" rx="4"/>
+                <rect class="pnt-panel-bg" x="1" y="1" width="146" height="98" rx="4"/>
+                <text class="pnt-panel-title" x="74" y="15" text-anchor="middle">P1</text>
+                <text class="pnt-panel-kind" x="8" y="30">зад</text>
+                <text class="pnt-panel-val" id="pnt1-set-label" x="140" y="30" text-anchor="end">—, —</text>
+                <text class="pnt-panel-kind" x="8" y="44">факт</text>
+                <text class="pnt-panel-val" id="pnt1-act-label" x="140" y="44" text-anchor="end">—, —</text>
+              </svg>
+              <div class="pnt-panel-actions">
+                <button type="button" class="jog-btn pnt-action-btn pnt-set-btn enabled-on-printer-state-idle" data-pnt="pnt1" disabled><svg viewBox="0 0 64 28" xmlns="http://www.w3.org/2000/svg">
+                  <rect class="jog-btn-outline" x="1" y="1" width="62" height="26" rx="4"/>
+                  <rect class="jog-btn-bg" x="1" y="1" width="62" height="26" rx="4"/>
+                  <text class="pnt-action-label" x="32" y="18" text-anchor="middle">Set</text>
+                </svg></button>
+                <button type="button" class="jog-btn pnt-action-btn pnt-go-btn" data-pnt="pnt1" disabled><svg viewBox="0 0 64 28" xmlns="http://www.w3.org/2000/svg">
+                  <rect class="jog-btn-outline" x="1" y="1" width="62" height="26" rx="4"/>
+                  <rect class="jog-btn-bg" x="1" y="1" width="62" height="26" rx="4"/>
+                  <text class="pnt-action-label" x="32" y="18" text-anchor="middle">Go</text>
+                </svg></button>
+              </div>
+            </div>
+          </div>
+          <div class="pnt-panel pnt-bottom-right d-none" id="pnt2-corner">
+            <div class="pnt-panel-inner">
+              <svg viewBox="0 0 148 100" xmlns="http://www.w3.org/2000/svg" class="pnt-panel-svg">
+                <rect class="pnt-panel-outline" x="1" y="1" width="146" height="98" rx="4"/>
+                <rect class="pnt-panel-bg" x="1" y="1" width="146" height="98" rx="4"/>
+                <text class="pnt-panel-title" x="74" y="15" text-anchor="middle">P2</text>
+                <text class="pnt-panel-kind" x="8" y="30">зад</text>
+                <text class="pnt-panel-val" id="pnt2-set-label" x="140" y="30" text-anchor="end">—, —</text>
+                <text class="pnt-panel-kind" x="8" y="44">факт</text>
+                <text class="pnt-panel-val" id="pnt2-act-label" x="140" y="44" text-anchor="end">—, —</text>
+              </svg>
+              <div class="pnt-panel-actions">
+                <button type="button" class="jog-btn pnt-action-btn pnt-set-btn enabled-on-printer-state-idle" data-pnt="pnt2" disabled><svg viewBox="0 0 64 28" xmlns="http://www.w3.org/2000/svg">
+                  <rect class="jog-btn-outline" x="1" y="1" width="62" height="26" rx="4"/>
+                  <rect class="jog-btn-bg" x="1" y="1" width="62" height="26" rx="4"/>
+                  <text class="pnt-action-label" x="32" y="18" text-anchor="middle">Set</text>
+                </svg></button>
+                <button type="button" class="jog-btn pnt-action-btn pnt-go-btn" data-pnt="pnt2" disabled><svg viewBox="0 0 64 28" xmlns="http://www.w3.org/2000/svg">
+                  <rect class="jog-btn-outline" x="1" y="1" width="62" height="26" rx="4"/>
+                  <rect class="jog-btn-bg" x="1" y="1" width="62" height="26" rx="4"/>
+                  <text class="pnt-action-label" x="32" y="18" text-anchor="middle">Go</text>
+                </svg></button>
+              </div>
             </div>
           </div>
         </div>
-        <div class="row no-gutters m-0 mt-2" >
-          <div class="col-sm-2 no-gutters m-0">
-            <button id="move-up" class="btn btn-outline-secondary  enabled-on-printer-state-idle" 
-          disabled="true">
-                  <span data-feather="arrow-up-circle"></span>
-            </button> 
-          </div>
-          <div class="col-sm-2 no-gutters m-0 ml-1 ">
-            <button id="move-left" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
-              disabled="true">
-                  <span data-feather="arrow-left-circle"></span>
-            </button> 
-          </div>
-          <div class="col-sm-2 no-gutters m-0 ml-1 ">
-            <button id="move-right" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
-              disabled="true">
-                  <span data-feather="arrow-right-circle"></span>
-            </button> 
-          </div>
-          <div class="col-sm-2 no-gutters m-0 ml-1 ">
-            <button id="move-down" class="btn btn-outline-secondary enabled-on-printer-state-idle" 
-              disabled="true">
-                  <span data-feather="arrow-down-circle"></span>
-            </button> 
-          </div>
-        </div>
-        <div class="row">
-    <% local p1 = printer.pcb:get_pnt('pnt1') 
-      if p1 then
-        %>
-          <div class="form-group mt-1 mb-0"> 
-              <button id="set-pnt1" class="btn btn-outline-info mr-2" data-pnt="pnt1">
-                <span data-feather="crosshair"></span>Set P1</button>
-          </div>
-       <%
-      end
-      local p2 = printer.pcb:get_pnt('pnt2') 
-      if p2 then
-        %> 
-           <div class="form-group mt-1 mb-0"> 
-              <button id="set-pnt2" class="btn btn-outline-info mr-2" data-pnt="pnt2">
-                <span data-feather="crosshair"></span>Set P2</button>
-          </div>
-        <%
-      end
-    %>
-        </div>
-  </form> <!-- form -->
-</div><!-- col -->
-<div class="col" />
-
-<div class="printer-control">
-  
+    </div>
+    </div>
+  </div>
 </div>
 
-
 -{css}-
+<link rel="stylesheet" href="/css/position.css">
 <style>
-/*#svg-viewport {
-  height: 300px;
-  width: 100%;
-  border: 1px;
-  border-style: solid;
-  background: url(/video);
-  background-repeat: no-repeat; 
-  background-size: cover;
-}*/
 .viewport-video {
-  width: <%= settings.camera_size_x %>px;
-  height: <%= settings.camera_size_y %>px;
-  position: absolute;
   transform: scaleX(<%= settings.camera_flip_x and -1 or 1 %>) scaleY(<%= settings.camera_flip_y and -1 or 1 %>);
 }
-#svg-content {
-  width: 100%;
-  height: 100%;
-  margin: 0px;
-  border-width: 1px solid black;
-  position: absolute;
-}
-</style> 
-
-
+</style>
 
 -{scripts}-
 
 <script type="text/javascript">
 
-function on_state_changed(state) {
+var center_x = (typeof state !== 'undefined' && state.pos_x != null) ? state.pos_x : null;
+var center_y = (typeof state !== 'undefined' && state.pos_y != null) ? state.pos_y : null;
+page_ctx.pnts = {};
+var laser_enabled = false;
+var laser_pwm_level = 0;
 
+function format_laser_pwm(val) {
+  return Math.round(val / 1024 * 100) + '%';
 }
 
+function update_laser_pwm_label() {
+  $('#laser-pwm-value').text(format_laser_pwm(laser_pwm_level));
+}
+
+function update_laser_controls() {
+  var printer_idle = typeof state !== 'undefined' && state.state === 'idle';
+  $('#laser-pwm').prop('disabled', !printer_idle || !laser_enabled);
+}
+
+function apply_laser_pwm() {
+  var v = laser_enabled ? laser_pwm_level : 0;
+  do_printer_action('setup-laser-pwm', { v: v });
+}
+
+function set_laser_enabled(enabled) {
+  laser_enabled = enabled;
+  $('#laser-switch').attr('aria-pressed', enabled ? 'true' : 'false');
+  update_laser_controls();
+  apply_laser_pwm();
+}
+
+update_laser_pwm_label();
+update_laser_controls();
+
+function get_printer_pos() {
+  var x = center_x;
+  var y = center_y;
+  if (x == null && typeof state !== 'undefined' && state.pos_x != null) {
+    x = state.pos_x;
+  }
+  if (y == null && typeof state !== 'undefined' && state.pos_y != null) {
+    y = state.pos_y;
+  }
+  return { x: x, y: y };
+}
+
+function format_pnt_val(v) {
+  if (v === undefined || v === null) {
+    return '—';
+  }
+  return Number(v).toFixed(3);
+}
+
+function format_pnt_pair(x, y) {
+  return format_pnt_val(x) + ', ' + format_pnt_val(y);
+}
+
+function set_pnt_label(id, text) {
+  var el = document.getElementById(id);
+  if (el) {
+    el.textContent = text;
+  }
+}
+
+function update_pnt_labels(pnt_name, pnt) {
+  if (!pnt) {
+    return;
+  }
+  set_pnt_label(pnt_name + '-set-label', format_pnt_pair(pnt.x, pnt.y));
+  if (pnt.px != null && pnt.py != null) {
+    set_pnt_label(pnt_name + '-act-label', format_pnt_pair(pnt.px, pnt.py));
+  } else {
+    set_pnt_label(pnt_name + '-act-label', '—, —');
+  }
+}
+
+function update_pnt_visibility() {
+  $('#pnt1-corner').toggleClass('d-none', !(page_ctx.pnts && page_ctx.pnts.pnt1));
+  $('#pnt2-corner').toggleClass('d-none', !(page_ctx.pnts && page_ctx.pnts.pnt2));
+}
+
+function update_pnt_go_buttons() {
+  var printer_idle = typeof state !== 'undefined' && state.state === 'idle';
+  ['pnt1', 'pnt2'].forEach(function(name) {
+    var pnt = page_ctx.pnts && page_ctx.pnts[name];
+    var has_act = pnt && pnt.px != null && pnt.py != null;
+    $('.pnt-go-btn[data-pnt="' + name + '"]').prop('disabled', !printer_idle || !has_act);
+  });
+}
+
+function refresh_pnt_labels() {
+  if (!page_ctx.pnts) {
+    return;
+  }
+  if (page_ctx.pnts.pnt1) {
+    update_pnt_labels('pnt1', page_ctx.pnts.pnt1);
+  }
+  if (page_ctx.pnts.pnt2) {
+    update_pnt_labels('pnt2', page_ctx.pnts.pnt2);
+  }
+  update_pnt_visibility();
+  update_pnt_go_buttons();
+  if (is_position_mobile() && !is_position_mobile_landscape()) {
+    update_svg_view();
+  }
+}
+
+function load_pnts() {
+  fetch('/api/pcb/pnts', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: '{}'
+  })
+  .then(checkStatus)
+  .then(parseJSON)
+  .then(checkResultStatus)
+  .then(function(data) {
+    page_ctx.pnts = data.pnts || {};
+    refresh_pnt_labels();
+  }).catch(function(error) {
+    console.log('failed load pnts', error);
+  });
+}
+
+load_pnts();
+page_ctx.on_change_state = load_pnts;
+
+function on_state_changed(state) {
+}
+
+function is_position_mobile() {
+  return window.innerWidth <= 767;
+}
+
+function is_position_mobile_landscape() {
+  return is_position_mobile() && window.innerWidth > window.innerHeight;
+}
+
+function get_viewport_height() {
+  return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+}
+
+function get_mobile_panels_reserve() {
+  if (!is_position_mobile() || is_position_mobile_landscape()) {
+    return 8;
+  }
+  let panels = document.getElementById('position-panels');
+  if (panels && panels.offsetHeight > 0) {
+    return panels.offsetHeight + 16;
+  }
+  return 160;
+}
 
 function update_svg_view() {
+  let container = $('.position-view');
+  let aspect = parseFloat(container.data('aspect'));
+  if (!aspect) {
+    return;
+  }
+  let maxW = $('.position-stack').width();
+  if (maxW <= 0) {
+    maxW = container.parent().width();
+  }
+  if (maxW <= 0) {
+    return;
+  }
+  if (is_position_mobile_landscape()) {
+    maxW = Math.max(maxW - Math.min(220, window.innerWidth * 0.38) - 8, 160);
+  }
+  let viewportTop = container.offset().top;
+  if (window.visualViewport) {
+    viewportTop -= window.visualViewport.offsetTop;
+  }
+  let maxH = get_viewport_height() - viewportTop - 8;
+  if (maxH < 80) {
+    maxH = 80;
+  }
+  if (is_position_mobile() && !is_position_mobile_landscape()) {
+    maxH = Math.max(maxH - get_mobile_panels_reserve(), 120);
+  }
+  let w = maxW;
+  let h = w / aspect;
+  if (h > maxH) {
+    h = maxH;
+    w = h * aspect;
+  }
+  w = Math.floor(w);
+  h = Math.floor(h);
   let svg_content = $('#svg-content');
   let svg_vp = $('#svg-viewport');
-  let w = svg_vp.width();
-  let h = svg_vp.height();
+  if (is_position_mobile()) {
+    container.css({ width: '100%', height: 'auto', overflow: 'visible' });
+    svg_vp.css({ width: w, height: h, position: 'relative', margin: is_position_mobile_landscape() ? '' : '0 auto' });
+  } else {
+    container.css({ width: w, height: h, overflow: 'hidden' });
+    svg_vp.css({ width: '100%', height: '100%', position: 'absolute', margin: '' });
+  }
   svg_content.width(w);
   svg_content.height(h);
+  svg_vp.width(w);
+  svg_vp.height(h);
 }
 
 update_svg_view();
 
-$(window).resize(function() {
-    update_svg_view();
+var touch_press_el = null;
+
+function release_touch_press() {
+  if (touch_press_el) {
+    touch_press_el.classList.remove('touch-press');
+    touch_press_el = null;
+  }
+}
+
+document.addEventListener('touchend', release_touch_press, { passive: true });
+document.addEventListener('touchcancel', release_touch_press, { passive: true });
+window.addEventListener('pointerup', release_touch_press);
+window.addEventListener('pointercancel', release_touch_press);
+
+function bind_touch_press(selector, panelSelector) {
+  var root = panelSelector ? document.querySelector(panelSelector) : document;
+  if (!root) {
+    return;
+  }
+
+  function find_button(target) {
+    var el = target;
+    while (el && el !== root) {
+      if (el.nodeType === 1 && typeof el.matches === 'function' && el.matches(selector)) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function press_button(btn) {
+    if (!btn || btn.disabled) {
+      return;
+    }
+    release_touch_press();
+    touch_press_el = btn;
+    btn.classList.add('touch-press');
+  }
+
+  root.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) {
+      return;
+    }
+    press_button(find_button(e.target));
+  }, { passive: true });
+
+  root.addEventListener('pointerdown', function(e) {
+    if (e.pointerType === 'touch') {
+      return;
+    }
+    press_button(find_button(e.target));
+  });
+}
+
+bind_touch_press('button.jog-btn', '#position-stack');
+bind_touch_press('button.laser-switch-btn', '#position-panels');
+
+$(window).on('resize orientationchange', function() {
+  update_svg_view();
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', update_svg_view);
+}
+
+$('#jog-overlay').on('click', 'button.jog-btn', function(){
+  if ($(this).prop('disabled')) {
+    return;
+  }
+  let axis = $(this).attr('data-axis');
+  let delta = parseFloat($(this).attr('data-delta'));
+  if (axis === 'x') {
+    do_printer_action("move-x", {x: delta});
+  } else {
+    do_printer_action("move-y", {y: delta});
+  }
 });
 
-let move_step = 1.0;
-
-$('#dropdown-select-step-items .dropdown-item').click(function(e){
-    move_step = parseFloat(e.target.innerHTML);
-    $('#dropdown-select-step-button').html(move_step);
+$('#laser-switch').on('click', function(){
+  if ($(this).prop('disabled')) {
+    return;
+  }
+  set_laser_enabled(!laser_enabled);
 });
 
-$('#printer-zero-x').click(function(){
-    do_printer_action("zero-x");
-});
-$('#printer-zero-y').click(function(){
-    do_printer_action("zero-y");
-});
-
-    
-$('#move-left').click(function(){
-    do_printer_action("move-x",{x:-move_step});
-});
-$('#move-right').click(function(){
-  do_printer_action("move-x",{x:move_step});
-});
-$('#move-up').click(function(){
-  do_printer_action("move-y",{y:move_step});
-});
-$('#move-down').click(function(){
-  do_printer_action("move-y",{y:-move_step});
-});
-
-$("#laser-pwm").on("input",function(e) {
-    let val = parseFloat($("#laser-pwm").val());
-    $("#laser-pwm-value").html(val+"%");
-    do_printer_action("setup-laser-pwm",{v:val});
+$('#laser-pwm').on('input', function(){
+  laser_pwm_level = parseFloat($(this).val());
+  update_laser_pwm_label();
+  if (laser_enabled) {
+    apply_laser_pwm();
+  }
 });
 
 page_ctx.on_update_state = function(state) {
   let need_update_pos = false;
-    if (state.pos_x) {
-      center_x = state.pos_x;
-      need_update_pos = true;
-    }
-    if (state.pos_y) {
-      center_y = state.pos_y;
-      need_update_pos = true;
-    }
-    if (need_update_pos) {
-      update_svg_view();
-    }
+  if (state.pos_x != null) {
+    center_x = state.pos_x;
+    need_update_pos = true;
+  }
+  if (state.pos_y != null) {
+    center_y = state.pos_y;
+    need_update_pos = true;
+  }
+  if (need_update_pos) {
+    update_svg_view();
+  }
+  update_pnt_go_buttons();
+  update_laser_controls();
 };
 
-function setup_point_offset(e) {
-  let pnt = $(e.target).data('pnt');
-  fetch('/api/pcb/offset_pnt',{
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body:JSON.stringify({
-          pnt: pnt,
-          x: center_x,
-          y: center_y
-        })
-      })
-      .then(checkStatus)
-      .then(parseJSON)
-      .then(checkResultStatus)
-      .then(function(data) {
-        if (data.tr) {
-          update_svg_view();
-        }
-      }).catch(function(error) {
-        console.log('request failed', error);
-      });
+function go_to_pnt(pnt) {
+  var p = page_ctx.pnts && page_ctx.pnts[pnt];
+  if (!p || p.px == null || p.py == null) {
+    return;
+  }
+  do_printer_action('go-to', { x: p.px, y: p.py });
 }
 
-$("#set-pnt1").click(setup_point_offset);
-$("#set-pnt2").click(setup_point_offset);
+function setup_point_offset(pnt) {
+  let pos = get_printer_pos();
+  if (pos.x == null || pos.y == null) {
+    bootstrap_alert.error(
+      '<p>Position unknown</p>' +
+      '<hr><p class="mb-0">Wait for printer position update or jog the head first.</p>'
+    );
+    return;
+  }
+  fetch('/api/pcb/offset_pnt',{
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body:JSON.stringify({
+      pnt: pnt,
+      x: pos.x,
+      y: pos.y
+    })
+  })
+  .then(checkStatus)
+  .then(parseJSON)
+  .then(checkResultStatus)
+  .then(function(data) {
+    if (data.pnt) {
+      page_ctx.pnts[pnt] = data.pnt;
+      update_pnt_labels(pnt, data.pnt);
+      update_pnt_visibility();
+      update_pnt_go_buttons();
+    }
+  }).catch(function(error) {
+    console.log('request failed', error);
+    bootstrap_alert.error(
+      '<p>Failed to set point</p>' +
+      '<hr><p class="mb-0">' + error + '</p>'
+    );
+  });
+}
 
-$("#calibrate").click(function() {
-  fetch('/api/calibrate',{
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body:JSON.stringify({
-          flash: parseFloat($("#calibrate-flash-time").val()),
-          speed: parseFloat($("#calibrate-speed").val()),
-        })
-      })
-      .then(checkStatus)
-      .then(parseJSON)
-      .then(checkResultStatus)
-      .then(function(data) {
-      }).catch(function(error) {
-        console.log('request failed', error);
-      });
+$('#position-stack').on('click', '.pnt-set-btn', function(){
+  if ($(this).prop('disabled')) {
+    return;
+  }
+  setup_point_offset($(this).attr('data-pnt'));
+});
+
+$('#position-stack').on('click', '.pnt-go-btn', function(){
+  if ($(this).prop('disabled')) {
+    return;
+  }
+  go_to_pnt($(this).attr('data-pnt'));
 });
 
 var download_img = new Image();
@@ -292,11 +593,9 @@ function update_camera_image() {
 update_camera_image();
 
 download_img.onload = function(){
-    document.getElementById('video-display').src = this.src;
-    setTimeout(update_camera_image, 1000/15);
+  document.getElementById('video-display').src = this.src;
+  setTimeout(update_camera_image, 1000/15);
 };
-
-
 
 </script>
 

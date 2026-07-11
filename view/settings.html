@@ -13,22 +13,40 @@
     <title>BlackBox - settings</title>
   </head>
   <body>
-    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
-      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="/">BlackBox</a>
-      <ul class="navbar-nav px-3">
-        <li class="nav-item text-nowrap">
-          <a class="nav-link" href="/"><span data-feather="x-circle"></span></a>
-        </li>
-      </ul>
+    <nav class="navbar navbar-dark sticky-top bg-dark p-0 navbar-app">
+      <button type="button" class="btn btn-link text-white sidebar-toggle d-md-none" id="sidebar-toggle" aria-label="Menu" aria-expanded="false">
+        <span data-feather="menu"></span>
+      </button>
+      <a class="navbar-brand d-none d-md-block col-md-2 mr-0" href="/">BlackBox</a>
+      <div class="navbar-toolbar d-flex align-items-center flex-grow-1 justify-content-end">
+        <a class="nav-link py-0 pr-2" href="/" aria-label="Close settings"><span data-feather="x-circle"></span></a>
+      </div>
     </nav>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
     <div class="container-fluid">
       <div class="row">
         <%- include('fragments/sidebar',...) %>
 
-        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
-          
-          <form method="post">
+        <main role="main" class="col-12 col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+            <h1 class="h2 text-capitalize"><%= page %></h1>
+
+            <div class="btn-toolbar mb-2 mb-md-0">
+              <button type="submit" form="settings-form" class="btn btn-sm btn-primary mr-2">Save</button>
+              <a href="/api/settings/export" download="settings.json" class="btn btn-sm btn-outline-secondary mr-2" title="Download settings">
+                <span data-feather="download"></span>
+              </a>
+              <button type="button" id="settings-import-btn" class="btn btn-sm btn-outline-secondary" title="Upload settings">
+                <span data-feather="upload"></span>
+              </button>
+              <input type="file" id="settings-import-file" accept=".json,application/json" hidden>
+            </div>
+          </div>
+
+          <div id="alert_placeholder"></div>
+
+          <form id="settings-form" method="post">
           <!-- settings page <%= page %> -->
           <%
             for _,v in ipairs(settings:get_page(page)) do
@@ -39,7 +57,6 @@
           <%
             end
           %>
-              <button type="submit" class="btn btn-primary">Save</button>
           </form>
           
         </main>
@@ -90,6 +107,35 @@
                 '<hr><p class="mb-0">' + error + '</p>'
               );
         })
+    });
+
+    $('#settings-import-btn').click(function() {
+      $('#settings-import-file').click();
+    });
+
+    $('#settings-import-file').change(function() {
+      var file = this.files[0];
+      if (!file) {
+        return;
+      }
+      var data = new FormData();
+      data.append('file', file);
+      fetch('/api/settings/import', {
+        method: 'POST',
+        body: data
+      })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(checkResultStatus)
+        .then(function() {
+          location.reload();
+        }).catch(function(error) {
+          bootstrap_alert.error(
+            '<p>Failed upload settings</p>' +
+            '<hr><p class="mb-0">' + error + '</p>'
+          );
+        });
+      this.value = '';
     });
 
     $('.list-edit-remove .btn').click(function(el) {

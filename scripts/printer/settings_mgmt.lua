@@ -1,6 +1,7 @@
 local table_load = require 'table_load'
 local json = require 'llae.json'
 local log = require 'llae.log'
+local fs = require 'llae.fs'
 
 local settings = {}
 
@@ -86,19 +87,32 @@ function settings:init( )
 end
 
 
-function settings:load( file )
-	local data_file = io.open(file,'r')
-	if not data_file then
-		return false
+function settings:import_data( data )
+	local config,err = json.decode(data,{
+		safe = true,
+		mark_arrays = true,
+		allow_comments = true,
+	})
+	if not config then
+		return nil, err
 	end
-	local data = data_file:read('*a')
-	data_file:close()
-	local config = assert(json.decode(data))
 	for _,v in ipairs(self._data) do
 		if config[v.name] then
 			v.value = config[v.name]
-		end 
+		end
 	end
+	return true
+end
+
+function settings:load( file )
+	if not fs.isfile(file) then
+		return false
+	end
+	local data = fs.load_file(file)
+	if not data then
+		return false
+	end
+	self:import_data(data)
 	return true
 end
 
@@ -110,9 +124,7 @@ function settings:store( file )
 		end
 	end
 	local json_data = json.encode(data)
-	local data_file = io.open(file,'w+')
-	data_file:write(json_data)
-	data_file:close()
+	fs.write_file(file,json_data)
 end
 
 function settings:__index( name )
@@ -132,6 +144,14 @@ function settings:get_settings( page )
 		end
 	end
 	return r
+end
+
+function settings:export_data()
+	local data = {}
+	for _,v in ipairs(self._data) do
+		data[v.name] = v.value
+	end
+	return json.encode(data)
 end
 
 return setmetatable(settings,settings)

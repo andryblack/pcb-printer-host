@@ -150,4 +150,34 @@ function do_printer_action(action,data) {
     })
 }
 
+function set_sidebar_open(open) {
+  document.body.classList.toggle('sidebar-open', open);
+  var toggle = document.getElementById('sidebar-toggle');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+}
+
+$(function() {
+  $('#sidebar-toggle').on('click', function() {
+    set_sidebar_open(!document.body.classList.contains('sidebar-open'));
+  });
+
+  $('#sidebar-backdrop').on('click', function() {
+    set_sidebar_open(false);
+  });
+
+  $('#sidebar .nav-link').on('click', function() {
+    if (window.matchMedia('(max-width: 767.98px)').matches) {
+      set_sidebar_open(false);
+    }
+  });
+
+  $(document).on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      set_sidebar_open(false);
+    }
+  });
+});
+
 

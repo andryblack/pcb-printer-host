@@ -601,6 +601,9 @@ function PCB:offset_pnt( data )
 	if not pnt then
 		error('invalid point ' .. tostring(data.pnt))
 	end
+	if data.x == nil or data.y == nil then
+		error('missing printer position')
+	end
 	pnt.px = data.x / application.printer:get_resolution_x()
 	pnt.py = data.y / application.printer:get_resolution_y()
 	if data.pnt == 'pnt1' then

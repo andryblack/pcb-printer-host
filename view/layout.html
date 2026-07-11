@@ -18,30 +18,31 @@
     <title>BlackBox</title>
   </head>
   <body>
-    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
-
-      <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">BlackBox</a>
-      <!-- <span class="navbar-text ml-3 mr-auto">Temperature</span> -->
-      <div id="state-title" class="navbar-text col-sm-2 ml-3"><%= printer_state.state %></div> 
-      <div id="state-progress" class="progress col-sm mr-3 ml-3 pl-0 pr-0">
-        <div class="progress-bar" style="width:<%= (printer_state.progress or 0)*100 %>%"></div>
+    <nav class="navbar navbar-dark sticky-top bg-dark p-0 navbar-app">
+      <button type="button" class="btn btn-link text-white sidebar-toggle d-md-none" id="sidebar-toggle" aria-label="Menu" aria-expanded="false">
+        <span data-feather="menu"></span>
+      </button>
+      <a class="navbar-brand d-none d-md-block col-md-2 mr-0" href="#">BlackBox</a>
+      <div class="navbar-toolbar d-flex align-items-center flex-grow-1 min-width-0">
+        <span id="state-title" class="navbar-text navbar-state text-truncate"><%= printer_state.state %></span>
+        <div id="state-progress" class="progress navbar-progress mx-2">
+          <div class="progress-bar" style="width:<%= (printer_state.progress or 0)*100 %>%"></div>
+        </div>
+        <span id="printer-pos" class="navbar-text navbar-pos text-nowrap"></span>
+        <div class="navbar-toolbar-actions d-flex align-items-center flex-shrink-0">
+          <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="do_printer_action('zero-x')"><span class="d-none d-lg-inline">Zero </span>X</button>
+          <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 ml-1" onclick="do_printer_action('zero-y')"><span class="d-none d-lg-inline">Zero </span>Y</button>
+          <a class="nav-link py-0 pl-2 pr-0" href="/settings" aria-label="Settings"><span data-feather="settings"></span></a>
+        </div>
       </div>
-      <span id="printer-pos" class="navbar-text col-sm-1 mr-3">
-      </span>
-      
-      <ul class="navbar-nav mr-3">
-        <li class="nav-item">
-          <a class="nav-link" href="/settings"><span data-feather="settings"></span></a>
-        </li>
-      </ul>
-
     </nav>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
     <div class="container-fluid">
       <div class="row">
         <%- include('fragments/sidebar',...) %>
 
-        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4 printer-state-<%=printer:get_state().state%>" id="main" >
+        <main role="main" class="col-12 col-md-9 ml-sm-auto col-lg-10 pt-3 px-4 printer-state-<%=printer:get_state().state%>" id="main" >
           <%- content.base(...) %>
 
           

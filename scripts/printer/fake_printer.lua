@@ -46,6 +46,15 @@ function FakePrinter:_response(conf)
 	table.insert(self._responses,raw)
 end
 
+function FakePrinter:_status_response(cmd)
+	self:_response{
+		cmd = cmd,
+		data = struct.new(Protocol.status_resp_t,{
+			status = Protocol.CODE_OK
+		}):build()
+	}
+end
+
 function FakePrinter:on_packet(data)
 	if #data < (Protocol.header_t_size + 1) then
 		return false,'invalid'
@@ -62,6 +71,8 @@ function FakePrinter:on_packet(data)
 		return false, 'invalid crc'
 	end
 	self._seq = header.seq
+	local payload = header.len > 0 and string.sub(data, Protocol.header_t_size + 1, len - 1) or ''
+
 	if header.cmd == Protocol.CMD_PING then
 		self:_response{
 			cmd = Protocol.CMD_PING,
@@ -70,23 +81,44 @@ function FakePrinter:on_packet(data)
 				pos_y = self._pos_y
 			}):build()
 		}
+	elseif header.cmd == Protocol.CMD_MOVE_X then
+		local move = struct.read(payload, Protocol.move_x_t, 0)
+		self._pos_x = move.pos
+		self:_status_response(Protocol.CMD_MOVE_X)
+	elseif header.cmd == Protocol.CMD_MOVE_Y then
+		local move = struct.read(payload, Protocol.move_y_t, 0)
+		self._pos_y = move.pos
+		self:_status_response(Protocol.CMD_MOVE_Y)
+	elseif header.cmd == Protocol.CMD_ZERO_X then
+		self._pos_x = 0
+		self:_status_response(Protocol.CMD_ZERO_X)
+	elseif header.cmd == Protocol.CMD_ZERO_Y then
+		self._pos_y = 0
+		self:_status_response(Protocol.CMD_ZERO_Y)
+	elseif header.cmd == Protocol.CMD_STOP then
+		self:_status_response(Protocol.CMD_STOP)
+	elseif header.cmd == Protocol.CMD_READ_SPEED then
+		self:_response{
+			cmd = Protocol.CMD_READ_SPEED,
+			data = struct.new(Protocol.speed_sample_t,{
+				dt = 0,
+				pwm = 0
+			}):build()
+		}
+	elseif header.cmd == Protocol.CMD_SETUP_LASER then
+		self:_status_response(Protocol.CMD_SETUP_LASER)
+	elseif header.cmd == Protocol.CMD_PRINT then
+		self:_status_response(Protocol.CMD_PRINT)
 	elseif header.cmd == Protocol.CMD_SETUP_MOTOR then
-		self:_response{
-			cmd = Protocol.CMD_SETUP_MOTOR,
-			data = struct.new(Protocol.status_resp_t,{
-				status = Protocol.CODE_OK
-			}):build()
-		}
+		self:_status_response(Protocol.CMD_SETUP_MOTOR)
 	elseif header.cmd == Protocol.CMD_SET_STEPPER_PARAM then
-		self:_response{
-			cmd = Protocol.CMD_SET_STEPPER_PARAM,
-			data = struct.new(Protocol.status_resp_t,{
-				status = Protocol.CODE_OK
-			}):build()
-		}
+		self:_status_response(Protocol.CMD_SET_STEPPER_PARAM)
+	else
+		log.error('fake printer: unknown cmd', header.cmd)
 	end
 	return true
 end
+
 function FakePrinter:write(data)
 	local len = #data
 	local o = 0

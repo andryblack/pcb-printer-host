@@ -36,11 +36,40 @@ function pcb:select_pnt( data )
 end
 
 
-function pcb:offset_pnt( data )
-	local res = application.printer.pcb:offset_pnt(data)
+local function format_pnt( pnt )
+	if not pnt then
+		return nil
+	end
+	return {
+		x = pnt.x,
+		y = pnt.y,
+		px = pnt.px,
+		py = pnt.py,
+	}
+end
+
+function pcb:get_pnts(  )
 	return {
 		status = 'ok',
-		tr = res
+		pnts = {
+			pnt1 = format_pnt(application.printer.pcb:get_pnt('pnt1')),
+			pnt2 = format_pnt(application.printer.pcb:get_pnt('pnt2')),
+		}
+	}
+end
+
+
+function pcb:offset_pnt( data )
+	local res, err = pcall(function()
+		application.printer.pcb:offset_pnt(data)
+	end)
+	if not res then
+		return { status = 'error', error = tostring(err) }
+	end
+	local pnt = application.printer.pcb:get_pnt(data.pnt)
+	return {
+		status = 'ok',
+		pnt = format_pnt(pnt)
 	}
 end
 
@@ -143,6 +172,9 @@ function pcb.make_routes( server )
 	end)
 	server:post('/api/pcb/select_pnt',function( request , response)
 		response:json(pcb:select_pnt(request.json))
+	end)
+	server:post('/api/pcb/pnts',function( request , response)
+		response:json(pcb:get_pnts())
 	end)
 	server:post('/api/pcb/offset_pnt',function( request , response)
 		response:json(pcb:offset_pnt(request.json))

@@ -59,6 +59,9 @@ function server:_init( settings )
 	api.pcb = pcb_api
 	pcb_api.make_routes( self )
 
+	local settings_api = require 'http.api.settings_api'
+	settings_api.make_routes( self )
+
 	local settings = require 'http.view.settings'
 	for _,v in ipairs(settings.sidebar) do
 		self:get('/settings/' .. v.name,function( request, res )

@@ -1,0 +1,50 @@
+
+<div id="alert_placeholder"></div>
+
+<div class="row">
+  <div class="col-md-6 col-lg-4">
+    <div class="form-group">
+      <label for="calibrate-flash-time">Flash time (us)</label>
+      <input type="number" class="form-control" id="calibrate-flash-time" value="<%= printer.pcb:get_config().flash_time %>" />
+    </div>
+    <div class="form-group">
+      <label for="calibrate-speed">Speed (mm/s)</label>
+      <input type="number" class="form-control" id="calibrate-speed" value="<%= printer.pcb:get_config().speed %>" />
+    </div>
+    <button id="calibrate" class="btn btn-outline-primary enabled-on-printer-state-idle" disabled="true">
+      <span data-feather="compass"></span> Calibrate
+    </button>
+  </div>
+</div>
+
+-{scripts}-
+
+<script type="text/javascript">
+
+$("#calibrate").click(function() {
+  fetch('/api/calibrate',{
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body:JSON.stringify({
+      flash: parseFloat($("#calibrate-flash-time").val()),
+      speed: parseFloat($("#calibrate-speed").val()),
+    })
+  })
+  .then(checkStatus)
+  .then(parseJSON)
+  .then(checkResultStatus)
+  .then(function(data) {
+    update_state(data);
+  }).catch(function(error) {
+    bootstrap_alert.error(
+      '<p>Failed calibrate</p>'+
+      '<hr><p class="mb-0">' + error + '</p>'
+    );
+  });
+});
+
+</script>
+
