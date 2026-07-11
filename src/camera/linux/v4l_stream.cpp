@@ -12,10 +12,9 @@ namespace V4L {
         if (ret < 0) {
             LOG_ERROR("buffers_ring::queue failed queue buffer " << ret );
             return false;
-        } else {
-            queued = true;
-            return true;
         }
+        queued = true;
+        return true;
     }
 
     bool stream_base::start() {
@@ -46,7 +45,7 @@ namespace V4L {
         return true;
     }
 
-    void single_stream::release() {
+    void stream_base::release() {
         m_fd = -1;
     }
    
@@ -92,8 +91,11 @@ namespace V4L {
             return false;
         }
         for (auto& b:buffers) {
-            b.queue(m_fd);
+            if (!b.queue(m_fd)) {
+                return false;
+            }
         }
+        return true;
     }
 
     template <typename Buf>
@@ -115,14 +117,14 @@ namespace V4L {
             LOG_ERROR("Stream not opened");
             return false;
         }
-        buf.type = m_type;
+        buf.type = m_buffer_type;
         buf.memory = V4L2_MEMORY_MMAP;
         int ret = IOCTL_VIDEO(m_fd, VIDIOC_DQBUF, &buf);
         if(ret < 0) {
             LOG_ERROR("stream_base::dequeue_impl failed dequeue buffer " << ret);
             return false;
         }
-        if (buf.index < buffer.size) {
+        if (buf.index < buffers.size()) {
             buffers[buf.index].queued = false;
         }
         return true;
@@ -155,11 +157,11 @@ namespace V4L {
     }
 
     bool single_stream::queue(size_t index) {
-        return queue_mpl(m_buffers,index);
+        return queue_impl(m_buffers,index);
     }
 
     bool single_stream::dequeue(struct v4l2_buffer& buf) {
-        return dequeue_mpl(m_buffers,buf);
+        return dequeue_impl(m_buffers,buf);
     }
 
     void single_stream::release() {
@@ -179,7 +181,7 @@ namespace V4L {
                 LOG_ERROR("invalid mmap_bufs.size");
                 return false;
             }
-            if (!mmap_bufs[i].allocate(buf.planes[i].length,fd,buf.planes[i].m.mem_offset)) {
+            if (!mmap_bufs[i].allocate(buf.m.planes[i].length,fd,buf.m.planes[i].m.mem_offset)) {
                 LOG_ERROR("mplane_buffer::allocate failed to allocate buffer " << buf.index);
                 return false;
             }
@@ -189,11 +191,11 @@ namespace V4L {
 
     bool mplane_stream::allocate(int fd,size_t num_buffers, size_t num_planes) {
         m_num_planes = num_planes;
-        return allocate_impl(m_buffers,fd,num_buffers,[num_planes](single_buffer& b){
+        return allocate_impl(m_buffers,fd,num_buffers,[num_planes](mplane_buffer& b){
             b.planes.resize(num_planes);
             b.mmap_bufs.resize(num_planes);
             b.buf.length = num_planes;
-            b.buf.planes = b.planes.data();
+            b.buf.m.planes = b.planes.data();
         });
     }
 
@@ -202,14 +204,14 @@ namespace V4L {
     }
 
     bool mplane_stream::queue(size_t index) {
-        return queue_mpl(m_buffers,index);
+        return queue_impl(m_buffers,index);
     }
 
     bool mplane_stream::dequeue(struct v4l2_buffer& buf,std::vector<struct v4l2_plane>& planes) {
         buf.length = m_num_planes;
         planes.resize(m_num_planes);
         buf.m.planes = planes.data();
-        if (dequeue_mpl(m_buffers,buf)) {
+        if (dequeue_impl(m_buffers,buf)) {
             planes.resize(buf.length);
             buf.m.planes = planes.data();
             return true;

@@ -6,7 +6,7 @@
 
 namespace V4L {
         
-    mmap_buffer::mmap_buffer(mmapped_buffer&& o) : m_mem(o.m_mem), m_size(o.m_size) {
+    mmap_buffer::mmap_buffer(mmap_buffer&& o) : m_mem(o.m_mem), m_size(o.m_size) {
         o.m_mem = nullptr;
         o.m_size = 0;
     }
