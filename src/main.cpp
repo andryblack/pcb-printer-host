@@ -60,6 +60,9 @@ int main(int argc,char** argv) {
 			pidfile = argv[i+1];
 			++i;
 		}
+		else if (strcmp(argv[i],"-nl")==0) {
+			logfile = NULL;
+		}
 	}
 	if (need_daemon) {
 		int ret = become_daemon();

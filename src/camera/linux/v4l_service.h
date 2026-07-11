@@ -66,8 +66,8 @@ private:
     
     int m_enc_fd;
     struct v4l2_capability m_enc_cap;
-    buffers_ring m_enc_buffers_write = buffers_ring(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
-    buffers_ring m_enc_buffers_read = buffers_ring(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+    buffers_ring m_enc_buffers_write = buffers_ring(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+    buffers_ring m_enc_buffers_read = buffers_ring(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
     std::vector<struct v4l2_buffer> m_enc_out_buffers;
     bool open_jpeg_encoder(lua::state& l);
     size_t jpeg_encode(const void* src,size_t src_size);

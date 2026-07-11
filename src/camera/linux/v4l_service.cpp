@@ -106,6 +106,7 @@ bool buffers_ring::allocate(int fd) {
             return false;
         }
         if (!b.allocate(fd,buf)) {
+            LOG_ERROR("buffers_ring::allocate failed to allocate buffer " << buf.index);
             return false;
         }
     }
@@ -123,10 +124,11 @@ bool buffers_ring::allocate_mp(int fd) {
         buf.memory = V4L2_MEMORY_MMAP;
         auto ret = IOCTL_VIDEO(fd, VIDIOC_QUERYBUF, &buf);
         if (ret < 0) {
-            LOG_ERROR("buffers_ring::allocate failed to query enc buffe" << ret);
+            LOG_ERROR("buffers_ring::allocate_mp failed to query enc buffe" << ret);
             return false;
         }
         if (!b.allocate_mp(fd,buf)) {
+            LOG_ERROR(buf.index);
             return false;
         }
     }
@@ -278,23 +280,24 @@ size_t v4l_service::jpeg_encode(const void* src,size_t src_size) {
 
 bool v4l_service::open_jpeg_encoder(lua::state& l) {
     if (!l.isstring(3)) {
-        printf("Need encoder dev\n");
+        LOG_ERROR("Need encoder dev");
         return false;
     }
     const char* dev = l.tostring(3);
     if((m_enc_fd = OPEN_VIDEO(dev, O_RDWR)) == -1) {
-        printf("ERROR opening V4L interface %s\n",dev);
+        LOG_ERROR("ERROR opening V4L interface " << dev);
         return false;
     }
+    LOG_INFO("opened encoding V4L interface " << dev);
     memset(&m_enc_cap, 0, sizeof(struct v4l2_capability));
     int ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_QUERYCAP, &m_enc_cap);
     if(ret < 0) {
-        printf("ERROR unable to query encoder capabilities.\n");
+        LOG_ERROR("ERROR unable to query encoder capabilities");
         return false;
     }
     printf("Encoder driver: %s, card: %s, bus: %s caps: %08x\n",m_enc_cap.driver,m_enc_cap.card,m_enc_cap.bus_info,m_enc_cap.capabilities);
     if((m_enc_cap.capabilities & ( V4L2_CAP_VIDEO_M2M_MPLANE)) == 0) {
-        printf("ERROR does not support m2m i/o\n");
+        LOG_ERROR("ERROR does not support m2m i/o");
         return false;
     }
 
@@ -302,7 +305,7 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
     inputFormat.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_G_FMT, &inputFormat);
     if(ret < 0) {
-        printf("ERROR unable get encoder input format.\n");
+        LOG_ERROR("ERROR unable get encoder input format.");
     }
     inputFormat.fmt.pix_mp.width = m_fmt.fmt.pix.width;
     inputFormat.fmt.pix_mp.height = m_fmt.fmt.pix.height;
@@ -313,7 +316,7 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
 
     ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_S_FMT, &inputFormat);
     if(ret < 0) {
-        printf("ERROR unable set encoder input format.\n");
+        LOG_ERROR("ERROR unable set encoder input format.");
         return false;
     }
 
@@ -332,7 +335,7 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
 
     ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_S_FMT, &outputFormat);
     if(ret < 0) {
-        printf("ERROR unable set encoder output format.\n");
+        LOG_ERROR("ERROR unable set encoder output format.");
         return false;
     }
 
@@ -345,11 +348,12 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
 
     ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_REQBUFS, &rb);
     if(ret < 0) {
-        printf("Unable to allocate enc capture buffers\n");
+        LOG_ERROR("Unable to allocate enc capture buffers");
         return false;
     }
 
-    if (!m_enc_buffers_read.allocate_mp(m_enc_fd)) {
+    if (!m_enc_buffers_write.allocate_mp(m_enc_fd)) {
+        LOG_ERROR("Failed to allocate enc_buffers_read");
         return false;
     }
    
@@ -361,11 +365,12 @@ bool v4l_service::open_jpeg_encoder(lua::state& l) {
 
     ret = IOCTL_VIDEO(m_enc_fd, VIDIOC_REQBUFS, &rb);
     if(ret < 0) {
-        printf("Unable to allocate enc output buffers\n");
+        LOG_ERROR("Unable to allocate enc output buffers");
         return false;
     }
 
-    if (!m_enc_buffers_write.allocate_mp(m_enc_fd)) {
+    if (!m_enc_buffers_read.allocate_mp(m_enc_fd)) {
+        LOG_ERROR("Failed to allocate enc_buffers_write");
         return false;
     }
                 
