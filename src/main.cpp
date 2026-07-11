@@ -10,6 +10,7 @@
 #include "llae/app.h"
 #include "llae/diag.h"
 #include "llae/buffer.h"
+#include "llae/logger.h"
 
 #include <unistd.h>
 #include <syslog.h>
@@ -41,6 +42,9 @@ int main(int argc,char** argv) {
 	bool need_daemon = false;
 	const char* logfile = LOGFILENAME;
 	const char* pidfile = PIDFILENAME;
+
+	llae::log::add_stdout_handler();
+
 	for (int i=0;i<argc;++i) {
 		if (strcmp(argv[i],"-b")==0)
 			need_daemon = true;
@@ -71,11 +75,13 @@ int main(int argc,char** argv) {
 		    closelog();
 		    return EXIT_FAILURE;
 		}
-		ret = redirect_log(logfile);
-		if(ret) {
-		    syslog(LOG_USER | LOG_ERR, "error redirect log");
-		    closelog();
-		    return EXIT_FAILURE;
+		if (logfile) {
+			ret = redirect_log(logfile);
+			if(ret) {
+				syslog(LOG_USER | LOG_ERR, "error redirect log");
+				closelog();
+				return EXIT_FAILURE;
+			}
 		}
 		write_pid(pidfile);
 	}
