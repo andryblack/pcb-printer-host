@@ -55,14 +55,14 @@ end
 
 function lvideo:on_timer(  )
 	self._timeout = self._timeout + 1
-	if self._timeout > 5 then
+	if self._timeout > 10 then
 		if self._video_started then
 			self._source:stop()
 			self._video_started = false
 			return
 		end
 	end
-	if self._timeout > 10 then
+	if self._timeout > 15 then
 		if self._video_opened then
 			self._source:close()
 			self._video_opened = false

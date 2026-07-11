@@ -28,6 +28,7 @@ namespace V4L {
             LOG_ERROR("Unable to start stream");
             return false;
         }
+        m_started = true;
         return true;
     }
 
@@ -42,6 +43,7 @@ namespace V4L {
             LOG_ERROR("Unable to stop stream");
             return false;
         }
+        m_started = false;
         return true;
     }
 
@@ -193,6 +195,7 @@ namespace V4L {
         m_num_planes = num_planes;
         return allocate_impl(m_buffers,fd,num_buffers,[num_planes](mplane_buffer& b){
             b.planes.resize(num_planes);
+            ::memset(b.planes.data(),0,sizeof(struct v4l2_plane)*num_planes);
             b.mmap_bufs.resize(num_planes);
             b.buf.length = num_planes;
             b.buf.m.planes = b.planes.data();

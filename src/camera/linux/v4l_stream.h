@@ -15,7 +15,8 @@ namespace V4L {
     class stream_base {
     protected:
         const v4l2_buf_type m_buffer_type;
-        int m_fd = -1;  
+        int m_fd = -1;
+        bool m_started = false;
     protected:
         explicit stream_base(v4l2_buf_type type) : m_buffer_type(type) {}
 
@@ -31,6 +32,7 @@ namespace V4L {
     public:
         bool start();
         bool stop();        
+        bool is_started() const { return m_started; }
     };
 
     struct single_buffer : buffer_base {

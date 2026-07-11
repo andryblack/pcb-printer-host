@@ -276,10 +276,10 @@
 		page_ctx.speed_info = speed_info;
 		page_ctx.target_speed = target_speed;
 		draw_graph(canvas.getContext('2d'));
-	}
+	};
 	page_ctx.state_info = {
 		need_speed_info: true
-	}
+	};
 	page_ctx.on_update_state = function(state) {
 		if (state.speed_info) {
 			update_speed_info(state.speed_info,state.target_speed);

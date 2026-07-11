@@ -93,14 +93,39 @@ size_t v4l_service::jpeg_encode(const void* src,size_t src_size) {
 
     size_t index = 0;
     if (!m_enc_buffers_write.get_free(index)) {
-        LOG_ERROR("not found free enc buffers");
-        return 0;
+        struct v4l2_buffer buf;
+        ::memset(&buf,0,sizeof(buf));
+        std::vector<struct v4l2_plane> planes;
+        if (m_enc_buffers_write.dequeue(buf,planes)) {
+            index = buf.index;
+        } else {
+            LOG_ERROR("failed deque encoder write buffer");
+            return 0;
+        }
     }
     auto& buf = m_enc_buffers_write.get_buffer(index);
     ::memcpy(buf.mmap_bufs.front().get_mem(),src,src_size);
     buf.planes[0].bytesused = src_size;
     buf.planes[0].data_offset = 0;
-    m_enc_buffers_write.queue(index);
+    if (!m_enc_buffers_write.queue(index)) {
+        LOG_ERROR("failed queue to encoder");
+    } else {
+        //LOG_INFO("queueud to encoder " << index << " " << src_size);
+        if (!m_enc_buffers_write.is_started()) {
+            if (!m_enc_buffers_write.start()) {
+                LOG_ERROR("Unable to start enc write");
+            } else {
+                LOG_INFO("started encoder write");
+            }
+        }
+        if (!m_enc_buffers_read.is_started()) {
+            if (!m_enc_buffers_read.start()) {
+                LOG_ERROR("Unable to start enc read");
+            } else {
+                LOG_INFO("started encoder read");
+            }
+        }
+    }
 
     return 0;
 }
@@ -263,11 +288,9 @@ bool v4l_service::open(lua::state& l) {
     if ( ret == 0) {
         const char* fmt = get_fmt_str(m_fmt.fmt.pix.pixelformat);
         
-        printf("Current size: %dx%d %s\n",
-             m_fmt.fmt.pix.width,
-             m_fmt.fmt.pix.height,fmt);
+        LOG_INFO("Current size: "<<int(m_fmt.fmt.pix.width)<<"x"<<int(m_fmt.fmt.pix.height)<<" " << fmt);
     } else {
-        printf("Failed get current format %d\n",ret);
+        LOG_ERROR("Failed get current format " << ret);
     }
 
     m_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -277,7 +300,7 @@ bool v4l_service::open(lua::state& l) {
     m_fmt.fmt.pix.field = V4L2_FIELD_ANY;
     ret = IOCTL_VIDEO(m_fd, VIDIOC_S_FMT, &m_fmt);
     if(ret < 0) {
-        printf("ERROR unable to set MPEG format\n");
+        LOG_ERROR("ERROR unable to set MPEG format");
         memset(&m_fmt, 0, sizeof(struct v4l2_format));
         m_fmt.fmt.pix.width = width;
         m_fmt.fmt.pix.height = height;
@@ -285,24 +308,26 @@ bool v4l_service::open(lua::state& l) {
         m_fmt.fmt.pix.field = V4L2_FIELD_ANY;
         ret = IOCTL_VIDEO(m_fd, VIDIOC_S_FMT, &m_fmt);
         if(ret < 0) {
-            printf("ERROR unable to set YUYV format\n");
+            LOG_ERROR("ERROR unable to set YUYV format");
             return false;
         }
     }
     IOCTL_VIDEO(m_fd, VIDIOC_G_FMT, &m_fmt);
     width = m_fmt.fmt.pix.width;
     height = m_fmt.fmt.pix.height;
-    printf("using: %dx%d\n",width,height);
+    LOG_INFO("using " << int(width) << "x" << int(height));
+
     if (m_fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_MJPEG) {
         if (m_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
+            LOG_INFO("JPEG not supported, enable encoder");
             if ( open_jpeg_encoder(l) ) {
                 m_need_encode = true;
             } else {
-                printf("ERROR failed init jpeg encoder\n");
+                LOG_ERROR("ERROR failed init jpeg encoder");
                 return false;
             }
         } else {
-        	printf("ERROR usupported pixel format: %d (%s)\n",m_fmt.fmt.pix.pixelformat,vf_tostr(m_fmt.fmt.pix.pixelformat));
+            LOG_ERROR("ERROR usupported pixel format: " << int(m_fmt.fmt.pix.pixelformat) << " " << vf_tostr(m_fmt.fmt.pix.pixelformat));
             return false;
         }
     }
@@ -339,7 +364,8 @@ void v4l_service::read_thread() {
 		FD_ZERO(&rd_fds);
         FD_SET(m_fd, &rd_fds);
         int maxfd = m_fd;
-        if (m_enc_fd > 0) {
+        bool process_encode = m_enc_buffers_read.is_started() || m_enc_buffers_write.is_started();
+        if ( process_encode ) {
             FD_SET(m_enc_fd, &rd_fds);
             if (m_enc_fd > maxfd)
                 maxfd = m_enc_fd;
@@ -360,7 +386,7 @@ void v4l_service::read_thread() {
         if (FD_ISSET(m_fd, &rd_fds)) {
         	process_frame();
         }
-        if (m_enc_fd > 0) {
+        if (process_encode) {
             if (FD_ISSET(m_enc_fd, &rd_fds)) {
                 process_enc_frame();
             }
@@ -376,19 +402,29 @@ void v4l_service::process_enc_frame() {
     struct v4l2_buffer buf;
     std::vector<struct v4l2_plane> planes;
     if (!m_enc_buffers_read.dequeue(buf,planes)) {
+        LOG_ERROR("failed dequeu from encoder");
         return;
     }
+    //LOG_INFO("deque encoder buffer " << int(buf.index) << " " << int(buf.length));
 
     auto& b = m_enc_buffers_read.get_buffer(buf.index);
+    bool written = false;
             
     for (auto i=0;i<buf.length;++i) {
         auto& p = buf.m.planes[i];
+        //LOG_INFO("found encoded data " << p.bytesused);
         if (p.bytesused > HEADERFRAME1 && m_need_frame) {
+            written = true;
             put_frame(b.mmap_bufs[i].get_mem(), p.bytesused,buf.timestamp);
             break;
         }
     }
-    m_enc_buffers_read.queue(buf.index);
+    if (!written) {
+        LOG_INFO("skip encoded data");
+    }
+    if (!m_enc_buffers_read.queue(buf.index)) {
+        LOG_ERROR("failed enque encoder buffer");
+    }
 }
 
 void v4l_service::process_frame() {
@@ -401,6 +437,9 @@ void v4l_service::process_frame() {
     }
    
     if(buf.bytesused > HEADERFRAME1 && m_need_frame) { 
+
+        //LOG_INFO("get camera frame " << buf.index << " , " << buf.bytesused);
+
     	auto& b = m_read_buffers.get_buffer(buf.index);
         if (m_need_encode) {
             jpeg_encode(b.mmap_buf.get_mem(),buf.bytesused);
@@ -433,16 +472,6 @@ void v4l_service::start() {
     }
 
 
-    if (m_need_encode) {
-        if (!m_enc_buffers_read.start()) {
-            LOG_ERROR("Unable to start enc output");
-            return;
-        }
-        if (!m_enc_buffers_write.start()) {
-            LOG_ERROR("Unable to start enc capture");
-            return;
-        }
-    }
     LOG_INFO("stream started");
     m_started = true;
     start_thread();
