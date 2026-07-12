@@ -203,6 +203,13 @@ integer {
 	default = 480
 }
 
+boolean {
+	name = 'dark_theme',
+	descr = 'Dark theme',
+	default = false,
+	page = 'ui'
+}
+
 integer {
 	name = 'camera_pos_x',
 	descr = 'Camera crosshair X',

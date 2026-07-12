@@ -284,6 +284,8 @@ function files.make_routes( server )
                 printer = application.printer,
                 path = req.params.files_path,
                 printer_state = server.printer_api:get_state(),
+                settings = application.printer.settings,
+                dark_theme = application.printer.settings:get('dark_theme'),
             })
     end)
 end

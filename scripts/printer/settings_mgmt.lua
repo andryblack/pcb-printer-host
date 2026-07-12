@@ -97,7 +97,7 @@ function settings:import_data( data )
 		return nil, err
 	end
 	for _,v in ipairs(self._data) do
-		if config[v.name] then
+		if config[v.name] ~= nil then
 			v.value = config[v.name]
 		end
 	end
@@ -125,6 +125,13 @@ function settings:store( file )
 	end
 	local json_data = json.encode(data)
 	fs.write_file(file,json_data)
+end
+
+function settings:get( name )
+	local item = self._by_name[name]
+	if item then
+		return item.value
+	end
 end
 
 function settings:__index( name )

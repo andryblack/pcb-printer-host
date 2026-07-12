@@ -39,6 +39,7 @@ function server:_init( settings )
 				printer = application.printer,
 				printer_state = self.printer_api:get_state(),
 				settings = application.printer.settings,
+				dark_theme = application.printer.settings:get('dark_theme'),
 				api = api
 			})
 		end)
@@ -72,6 +73,8 @@ function server:_init( settings )
 				sidebar_active = v.name,
 				page = v.name,
 				settings = settings,
+				printer_settings = application.printer.settings,
+				dark_theme = application.printer.settings:get('dark_theme'),
 			})
 		end)
 		self:post('/settings/' .. v.name,function( request , res)
@@ -95,6 +98,8 @@ function server:_init( settings )
 				sidebar_active = v.name,
 				page = v.name,
 				settings = settings,
+				printer_settings = application.printer.settings,
+				dark_theme = application.printer.settings:get('dark_theme'),
 			})
 		end)
 	end
