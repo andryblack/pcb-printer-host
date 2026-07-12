@@ -166,7 +166,7 @@ button.jog-btn svg {
 }
 .pnt-panel-svg {
   width: 148px;
-  height: 100px;
+  height: 82px;
   display: block;
   pointer-events: none;
 }
@@ -216,7 +216,7 @@ button.jog-btn svg {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: 6px;
+  bottom: 5px;
   display: flex;
   justify-content: space-between;
   gap: 6px;
@@ -509,7 +509,7 @@ button.laser-switch-btn.touch-press:not(:disabled) .laser-switch-track {
     position: absolute;
     left: 6px;
     right: 6px;
-    bottom: 6px;
+    bottom: 5px;
     margin-top: 0;
     display: flex;
     gap: 6px;
