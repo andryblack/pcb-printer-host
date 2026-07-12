@@ -143,8 +143,19 @@ printer._actions['go-to']=function(self,data)
 	self._position_y = math.ceil(data.y * self._resolution_y)
 	self._protocol:move_y(self._position_y)
 end
-printer._actions['setup-laser-pwm']=function(self,data) 
-	self._protocol:setup_laser(Protocol.LASER_MODE_PWM,math.ceil(data.v))
+printer._actions['setup-laser-pwm']=function(self,data)
+	if not data.enabled then
+		self._protocol:setup_laser(Protocol.LASER_MODE_PWM,0)
+		return
+	end
+	local v = tonumber(data.v) or 0
+	local pwm_min = self.settings.laser_pwm_min
+	local pwm_max = self.settings.laser_pwm_max
+	if pwm_max < pwm_min then
+		pwm_min, pwm_max = pwm_max, pwm_min
+	end
+	local scaled = pwm_min + (math.min(math.max(v,0),1024) / 1024) * (pwm_max - pwm_min)
+	self._protocol:setup_laser(Protocol.LASER_MODE_PWM,math.ceil(scaled))
 end
 
 

@@ -237,4 +237,18 @@ boolean {
 	default = false,
 	page = 'ui'
 }
+
+integer {
+	name = 'laser_pwm_min',
+	descr = 'Laser min PWM for position mode (0-1024)',
+	default = 0,
+	page = 'ui'
+}
+
+integer {
+	name = 'laser_pwm_max',
+	descr = 'Laser max PWM for position mode (0-1024)',
+	default = 1024,
+	page = 'ui'
+}
 ]]

@@ -225,8 +225,7 @@ function update_laser_controls() {
 }
 
 function apply_laser_pwm() {
-  var v = laser_enabled ? laser_pwm_level : 0;
-  do_printer_action('setup-laser-pwm', { v: v });
+  do_printer_action('setup-laser-pwm', { v: laser_pwm_level, enabled: laser_enabled });
 }
 
 function set_laser_enabled(enabled) {
