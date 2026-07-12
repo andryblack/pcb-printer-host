@@ -483,7 +483,7 @@ $('#jog-overlay').on('click', 'button.jog-btn', function(){
     return;
   }
   let axis = $(this).attr('data-axis');
-  let delta = parseFloat($(this).attr('data-delta'));
+  let delta = -parseFloat($(this).attr('data-delta'));
   if (axis === 'x') {
     do_printer_action("move-x", {x: delta});
   } else {

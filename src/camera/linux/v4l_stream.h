@@ -28,6 +28,8 @@ namespace V4L {
         bool queue_impl(std::vector<Buf>& buffers,size_t index);
         template <typename Buf>
         bool dequeue_impl(std::vector<Buf>& buffers,struct v4l2_buffer& buf);
+        template <typename Buf>
+        bool reset_queued_impl(std::vector<Buf>& buffers);
         void release();
     public:
         bool start();
@@ -51,6 +53,7 @@ namespace V4L {
         bool dequeue(struct v4l2_buffer& buf);
         single_buffer& get_buffer(size_t index) { return m_buffers[index]; }
         void release();
+        void reset_queued();
     };
 
     struct mplane_buffer : buffer_base {
@@ -72,6 +75,7 @@ namespace V4L {
         mplane_buffer& get_buffer(size_t index) { return m_buffers[index]; }
         void release();
         bool get_free(size_t& index);
+        void reset_queued();
     };
 
 }

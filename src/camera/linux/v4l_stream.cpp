@@ -132,6 +132,14 @@ namespace V4L {
         return true;
     }
 
+    template <typename Buf>
+    bool stream_base::reset_queued_impl(std::vector<Buf>& buffers) {
+        for (auto& b:buffers) {
+            b.queued = false;
+        }
+        return true;
+    }
+
     bool single_buffer::allocate(int fd) {
         buf.memory = V4L2_MEMORY_MMAP;
         auto ret = IOCTL_VIDEO(fd, VIDIOC_QUERYBUF, &buf);
@@ -169,6 +177,10 @@ namespace V4L {
     void single_stream::release() {
         m_buffers.clear();
         stream_base::release();
+    }
+
+    void single_stream::reset_queued() {
+        reset_queued_impl(m_buffers);
     }
 
     bool mplane_buffer::allocate(int fd) {
@@ -236,5 +248,8 @@ namespace V4L {
         m_buffers.clear();
         stream_base::release();
     }
-    
+
+    void mplane_stream::reset_queued() {
+        reset_queued_impl(m_buffers);
+    }
 }

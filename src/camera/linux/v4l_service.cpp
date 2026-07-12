@@ -481,17 +481,26 @@ void v4l_service::stop() {
 	if (!m_started) {
 		return;
 	}
+    m_started = false;
+    stop_thread();
+
     if (m_read_buffers.stop()) {
         LOG_ERROR("Unable to stop capture");
     }
-   
+    m_read_buffers.reset_queued();
+
     if (m_need_encode) {
-        m_enc_buffers_write.stop();
-        m_enc_buffers_read.stop();
+        if (!m_enc_buffers_read.stop()) {
+            LOG_ERROR("Unable to stop encoder read");
+        }
+        if (!m_enc_buffers_write.stop()) {
+            LOG_ERROR("Unable to stop encoder write");
+        }
+        m_enc_buffers_write.reset_queued();
+        m_enc_buffers_read.reset_queued();
     }
-    LOG_INFO("stream stopped");
-    m_started = false;
-    stop_thread();
+    
+    LOG_INFO("stream stopped"); 
 }
 
 
