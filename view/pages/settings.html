@@ -1,0 +1,102 @@
+-{toolbar}-
+<div class="btn-toolbar mb-2 mb-md-0">
+    <button type="submit" form="settings-form" class="btn btn-sm btn-primary me-2">Save</button>
+    <a href="/api/settings/export" download="settings.json" class="btn btn-sm btn-outline-secondary me-2" title="Download settings">
+      <span data-feather="download"></span>
+    </a>
+    <button type="button" id="settings-import-btn" class="btn btn-sm btn-outline-secondary" title="Upload settings">
+      <span data-feather="upload"></span>
+    </button>
+    <input type="file" id="settings-import-file" accept=".json,application/json" hidden>
+  </div>
+-{content}-
+<form id="settings-form" method="post">
+    <!-- settings page <%= page %> -->
+    <%
+      for _,v in ipairs(settings:get_page(page)) do
+    %>
+        <div class="form-group">
+          <%- settings:format_input(v) %>
+        </div>
+    <%
+      end
+    %>
+</form>
+-{scripts}-
+<script>
+    $('.list-edit-append').click(function(el) {
+      let list_name = $(this).data('list-name')
+      console.log('append clicked:' + list_name)
+      fetch('/api/settings_add_list_element',{
+          method:'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body:JSON.stringify({list_name:list_name})
+        })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(function(data) {
+           location.reload();
+        }).catch(function(error) {
+            bootstrap_alert.error(
+                '<p>Failed add element</p>'+
+                '<hr><p class="mb-0">' + error + '</p>'
+              );
+        })
+    });
+
+    $('#settings-import-btn').click(function() {
+      $('#settings-import-file').click();
+    });
+
+    $('#settings-import-file').change(function() {
+      var file = this.files[0];
+      if (!file) {
+        return;
+      }
+      var data = new FormData();
+      data.append('file', file);
+      fetch('/api/settings/import', {
+        method: 'POST',
+        body: data
+      })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(checkResultStatus)
+        .then(function() {
+          location.reload();
+        }).catch(function(error) {
+          bootstrap_alert.error(
+            '<p>Failed upload settings</p>' +
+            '<hr><p class="mb-0">' + error + '</p>'
+          );
+        });
+      this.value = '';
+    });
+
+    $('.list-edit-remove').click(function(el) {
+      let list_name = $(this).data('list-name')
+      let idx = $(this).data('item-idx') * 1;
+      console.log('remove clicked:' + list_name + ' idx:' + idx)
+      fetch('/api/settings_remove_list_element',{
+          method:'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body:JSON.stringify({list_name:list_name,idx:idx})
+        })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(function(data) {
+           location.reload();
+        }).catch(function(error) {
+            bootstrap_alert.error(
+                '<p>Failed add element</p>'+
+                '<hr><p class="mb-0">' + error + '</p>'
+              );
+        })
+    });
+</script>

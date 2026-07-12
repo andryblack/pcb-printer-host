@@ -61,52 +61,74 @@ function server:_init( settings )
 	pcb_api.make_routes( self )
 
 	local settings_api = require 'http.api.settings_api'
+	api.settings = settings_api
 	settings_api.make_routes( self )
+
+	local firmware_api = require 'http.api.firmware'
+	api.firmware = firmware_api
+	firmware_api.make_routes( self )
 
 	local settings = require 'http.view.settings'
 	for _,v in ipairs(settings.sidebar) do
-		self:get('/settings/' .. v.name,function( request, res )
-			return res:render('settings',{
-				route = v.name,
-				json = require 'llae.json',
-				sidebar = settings.sidebar, 
-				sidebar_active = v.name,
-				page = v.name,
-				settings = settings,
-				printer_settings = application.printer.settings,
-				dark_theme = application.printer.settings:get('dark_theme'),
-			})
-		end)
-		self:post('/settings/' .. v.name,function( request , res)
-			local data = {}
-			if request.multipart then
-				for _,v in ipairs(request.multipart) do
-					data[v.name] = v.data
+		if not v.custom then
+			self:get('/settings/' .. v.name,function( request, res )
+				return res:render('settings',{
+					route = v.name,
+					json = require 'llae.json',
+					sidebar = settings.sidebar, 
+					sidebar_active = v.name,
+					content_page = 'settings',
+					page = v.name,
+					settings = settings,
+					printer = application.printer,
+					dark_theme = application.printer.settings:get('dark_theme'),
+				})
+			end)
+			self:post('/settings/' .. v.name,function( request , res)
+				local data = {}
+				if request.multipart then
+					for _,v in ipairs(request.multipart) do
+						data[v.name] = v.data
+					end
+				elseif request.form then
+					data = request.form
+				else 
+					error('need data')
 				end
-			elseif request.form then
-				data = request.form
-			else 
-				error('need data')
-			end
-			local json = require 'llae.json'
-			log.info('settings:',v.name,json.encode(data))
-			settings:apply(v.name,data)
-			return res:render('settings',{
-				route = v.name,
-				json = require 'llae.json',
-				sidebar = settings.sidebar, 
-				sidebar_active = v.name,
-				page = v.name,
-				settings = settings,
-				printer_settings = application.printer.settings,
-				dark_theme = application.printer.settings:get('dark_theme'),
-			})
-		end)
+				local json = require 'llae.json'
+				log.info('settings:',v.name,json.encode(data))
+				settings:apply(v.name,data)
+				return res:render('settings',{
+					route = v.name,
+					json = require 'llae.json',
+					sidebar = settings.sidebar, 
+					sidebar_active = v.name,
+					page = v.name,
+					settings = settings,
+					dark_theme = application.printer.settings:get('dark_theme'),
+				})
+			end)
+		else
+			self:get('/settings/' .. v.name,function( request, res )
+				return res:render('settings',{
+					route = v.name,
+					content_page = v.custom,
+					json = require 'llae.json',
+					sidebar = settings.sidebar, 
+					sidebar_active = v.name,
+					page = v.name,
+					settings = settings,
+					printer = application.printer,
+					dark_theme = application.printer.settings:get('dark_theme'),
+				})
+			end)
+		end
 	end
 
 	self:get('/settings',function( request , response )
 		response:redirect('/settings/' .. settings.sidebar[1].name )
 	end)
+
 end
 
 

@@ -28,7 +28,9 @@ local commands = {
 	['CMD_PRINT'] = 7,
 	['CMD_MOVE_Y'] = 8,
 	['CMD_SETUP_LASER'] = 9,
-	['CMD_SET_STEPPER_PARAM'] = 10
+	['CMD_SET_STEPPER_PARAM'] = 10,
+	['CMD_FLASH'] = 11,
+	['CMD_INFO'] = 12
 }
 Protocol._cmd_names = {}
 for k,v in pairs(commands) do
@@ -74,6 +76,9 @@ Protocol.move_y_t = {
 Protocol.CODE_OK = 0
 Protocol.CODE_INVALID_DATA = 1
 Protocol.CODE_OVERFLOW = 2
+Protocol.CODE_INVALID_SPEED = 3
+Protocol.CODE_INVALID_LEN = 4
+Protocol.CODE_INVALID_STATE = 5
 
 Protocol.status_resp_t = {
 	{'u16','status'}
@@ -100,6 +105,11 @@ Protocol.PARAM_STEPPER_STOP_STEPS = 4
 Protocol.set_param_t = {
 	{'u8','param'},
 	{'u32','value'}
+}
+
+Protocol.info_resp_t = {
+	{'u16','version'},
+	{'u16','flags'},
 }
 
 function Protocol:_init( delegate )
@@ -195,6 +205,9 @@ function Protocol:on_response( header, data )
 			s,o = struct.read(data,Protocol.speed_sample_t,o)
 			self._delegate:add_speed_sample(s)
 		end
+	elseif header.cmd == Protocol.CMD_INFO then
+		local o,s = struct.read(data,Protocol.info_resp_t,0)
+		self._delegate:update_info(o.version,o.flags)
 	elseif (header.cmd == Protocol.CMD_SET_STEPPER_PARAM) or
 		   (header.cmd == Protocol.CMD_SETUP_LASER) or
 		   (header.cmd == Protocol.CMD_ZERO_X) or 
@@ -314,9 +327,15 @@ function Protocol:set_param( param, value )
 	}):build()
 	self:cmd(self.CMD_SET_STEPPER_PARAM,data)
 end
+function Protocol:info(  )
+	self:cmd(self.CMD_INFO)
+end
+function Protocol:flash( )
+	self:cmd(self.CMD_FLASH)
+end
 function Protocol:_on_timeout(  )
 	if self._recv_seq then
-		print('cmd_timeout')
+		log.error('cmd_timeout')
 		self._recv_seq = nil
 		self:_check_next()
 	end

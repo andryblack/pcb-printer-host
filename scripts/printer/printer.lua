@@ -23,6 +23,10 @@ function printer:init(  )
 	self._settings_file = application.config.files .. '/.printer/settings.json'
 	self._state = state_disconnected
 	self._speed_samples = {}
+	self._firmware = {
+		version = 0,
+		flags = 0,
+	}
 	self._auto_connect = 5
 
 	self._position_x = nil
@@ -49,6 +53,10 @@ function printer:init(  )
 		self.printer._position_x = pos_x
 		self.printer._position_y = pos_y
 		self.printer._position_updated = true
+	end
+	function protocol_delegate:update_info( version, flags )
+		self.printer._firmware.version = version
+		self.printer._firmware.flags = flags
 	end
 	function protocol_delegate:add_speed_sample( sample )
 		if sample.pwm == 0 then
@@ -518,6 +526,51 @@ function printer:calibrate( data  )
 	end)
 end
 
+function printer:get_firmware_info()
+	return self._firmware
+end
 
+function printer:flash_firmware( data )
+	if self._firmware.status and self._firmware.status ~= 'done' and self._firmware.status ~= 'error' then
+		return false, 'firmware update in progress'
+	end
+
+	local firmware = require 'printer.firmware'
+	self._firmware.status = 'boot'
+	self._firmware.progress = 0
+	self._firmware.total = #data
+	self._firmware.error = nil
+
+	async.run(function()
+
+		self._protocol:flash()
+
+		async.pause(1000)
+
+		self:disconnect()
+
+		local res,err = xpcall(function()
+			firmware.flash{
+				data = data,
+				status = self._firmware,
+				printer = self,
+				device = self.settings.device
+			}
+		end,debug.traceback)
+		if not res then
+			self._firmware.status = 'error'
+			self._firmware.error = err
+			log.error('flash firmware error',err)
+		else
+			self._firmware.status = 'done'
+		end
+		firmware:close()
+
+		self:connect()
+
+	end)
+
+	return true
+end
 
 return printer

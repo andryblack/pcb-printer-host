@@ -6,6 +6,12 @@ local sidebar = {
 		icon = 'link'
 	},
 	{
+		name = 'firmware',
+		text = 'Firmware',
+		icon = 'hard-drive',
+		custom = 'firmware'
+	},
+	{
 		name = 'printer',
 		text = 'Printer',
 		icon = 'printer'
