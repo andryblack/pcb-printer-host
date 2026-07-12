@@ -566,6 +566,7 @@ function PCB:prepare_preview(  )
 	self._rasterizator:start()
 	log.info('started')
 	self._write:set_size(self._rasterizator:get_width(),self._rasterizator:get_height())
+	self._write:set_negative(application.printer.settings.preview_negative)
 	
 end
 
