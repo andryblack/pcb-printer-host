@@ -77,11 +77,17 @@ function SerialConnection:open_serial()
 			self._serial = s
 			async.run(function()
 				self:read_function()
+				self:_on_serial_closed()
 			end)
 
 		end
 	end
 	return true
+end
+
+function SerialConnection:_on_serial_closed()
+	self._serial = nil
+	log.info('serial closed',self._path)
 end
 
 function SerialConnection:configure_baud( baudrate )
@@ -94,11 +100,14 @@ function SerialConnection:is_opened(  )
 end
 
 function SerialConnection:write( data )
-	local r,err = pcall(self._serial.write,self._serial,data)
-	if not r then
-		print('failed write: ',err)
+	if not self._serial then
+		error('attempt to write to closed serial port')
 	end
-	return r
+	local res,err = self._serial:write(data)
+	if not res then
+		error('failed to write to serial port: ' .. tostring(err))
+	end
+	return true
 end
 
 local FakeConnection = class(Connection,'printer.FakeConnection')

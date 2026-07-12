@@ -420,9 +420,9 @@ function printer:print(  )
 
 	async.run(function()
 		local r,err = xpcall(function()
-			print('start prepare print')
+			log.info('start prepare print')
 			sself.pcb:prepare_print(sself._protocol)
-			print('complete prepare print')
+			log.info('complete prepare print')
 			while (not sself.pcb:print_complete())  do
 				if sself._protocol:is_ready() and (sself._state == state_printing) then
 					sself.pcb:process_print( sself._protocol )

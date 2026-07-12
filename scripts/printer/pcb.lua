@@ -489,21 +489,20 @@ function PCB:prepare_print( protocol )
 	protocol:setup_laser(Protocol.LASER_MODE_PRINT,self._config.flash_time)
 	protocol:wait()
 	
-	print('paths added,start')
+	log.info('paths added,start')
 	self._rasterizator:start()
-	print('started')
+	log.info('started')
 	local res = application.printer:get_resolution_x()
 	self._start_r = math.ceil(self._config.position_x * res) + self._rasterizator:get_left()
-	print('left pos:',self._start_r,self._rasterizator:get_left())
+	log.info('left pos:',self._start_r,self._rasterizator:get_left())
 	self._start_l = self._start_r + self._rasterizator:get_width()
-	print('right pos:',self._start_l,self._rasterizator:get_width())
+	log.info('right pos:',self._start_l,self._rasterizator:get_width())
 	
 	protocol:move_x(self._start_r-5,application.printer:get_idle_speed_x(),protocol.FLAG_WAIT_MOVE)
 	protocol:wait()
 	local y_pos = math.ceil((self._config.position_y + self._rasterizator:get_y_start()) * application.printer:get_resolution_y())
-	print('y_start:',y_pos)
-	protocol:move_y(y_pos,
-		protocol.FLAG_WAIT_MOVE)
+	log.info('y_start:',y_pos)
+	protocol:move_y(y_pos,protocol.FLAG_WAIT_MOVE)
 	protocol:wait()
 	self._dir = 'r'
 	self._pos_y = 0
