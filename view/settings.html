@@ -13,13 +13,13 @@
     <title>BlackBox - settings</title>
   </head>
   <body>
-    <nav class="navbar navbar-dark sticky-top bg-dark p-0 navbar-app">
+    <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 navbar-app">
       <button type="button" class="btn btn-link text-white sidebar-toggle d-md-none" id="sidebar-toggle" aria-label="Menu" aria-expanded="false">
         <span data-feather="menu"></span>
       </button>
-      <a class="navbar-brand d-none d-md-block col-md-2 mr-0" href="/">BlackBox</a>
+      <a class="navbar-brand d-none d-md-flex col-md-2 me-0 px-3 align-items-center" href="/">BlackBox</a>
       <div class="navbar-toolbar d-flex align-items-center flex-grow-1 justify-content-end">
-        <a class="nav-link py-0 pr-2" href="/" aria-label="Close settings"><span data-feather="x-circle"></span></a>
+        <a class="nav-link py-0 pe-2" href="/" aria-label="Close settings"><span data-feather="x-circle"></span></a>
       </div>
     </nav>
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
@@ -28,13 +28,13 @@
       <div class="row">
         <%- include('fragments/sidebar',...) %>
 
-        <main role="main" class="col-12 col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+        <main role="main" class="col-12 col-md-9 ms-sm-auto col-lg-10 pt-3 px-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
             <h1 class="h2 text-capitalize"><%= page %></h1>
 
             <div class="btn-toolbar mb-2 mb-md-0">
-              <button type="submit" form="settings-form" class="btn btn-sm btn-primary mr-2">Save</button>
-              <a href="/api/settings/export" download="settings.json" class="btn btn-sm btn-outline-secondary mr-2" title="Download settings">
+              <button type="submit" form="settings-form" class="btn btn-sm btn-primary me-2">Save</button>
+              <a href="/api/settings/export" download="settings.json" class="btn btn-sm btn-outline-secondary me-2" title="Download settings">
                 <span data-feather="download"></span>
               </a>
               <button type="button" id="settings-import-btn" class="btn btn-sm btn-outline-secondary" title="Upload settings">
@@ -64,29 +64,22 @@
     </div>
 
     <!-- Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <!-- jQuery first, then Bootstrap JS (includes Popper) -->
     <script src="/js/jquery-3.3.1.slim.min.js" ></script>
-    <script src="/js/popper.min.js" ></script>
-    <script src="/js/bootstrap.min.js" ></script>
+    <script src="/js/bootstrap.bundle.min.js" ></script>
 
     <script src="/js/feather.min.js"></script>
 
     <script>
       feather.replace()
-
-      $(function () {
-        $('[data-toggle="tooltip"]').tooltip()
-      })
-      $(function () {
-        $('[extra-data-toggle="tooltip"]').tooltip()
-      })
     </script>
 
     <script src="/js/application.js"></script>
+    <script>init_bootstrap_tooltips()</script>
 
     
     <script>
-    $('.list-edit-append .btn').click(function(el) {
+    $('.list-edit-append').click(function(el) {
       let list_name = $(this).data('list-name')
       console.log('append clicked:' + list_name)
       fetch('/api/settings_add_list_element',{
@@ -138,7 +131,7 @@
       this.value = '';
     });
 
-    $('.list-edit-remove .btn').click(function(el) {
+    $('.list-edit-remove').click(function(el) {
       let list_name = $(this).data('list-name')
       let idx = $(this).data('item-idx') * 1;
       console.log('remove clicked:' + list_name + ' idx:' + idx)

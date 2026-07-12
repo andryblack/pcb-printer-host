@@ -122,7 +122,9 @@ function pcb:preview(  )
 	end)
 	if res then
 		log.info('preview started')
-		return {status='ok'}
+		local state = application.printer:get_state()
+		state.status = 'ok'
+		return state
 	end
 	log.error('failed preview gerber:', err)
 	return {status='error',error=err}
@@ -140,6 +142,21 @@ function pcb.make_routes( server )
     	--response:write_data(application.printer.pcb:get_svg(),'image/svg+xml')
     	response:set_header('Content-Type','image/svg+xml')
     	response:finish(application.printer.pcb:get_svg())
+	end)
+	server:get('/api/pcb/preview.png',function( request , response )
+		local preview = application.printer.pcb:get_preview()
+		if not preview then
+			response:set_header('Content-Type','text/plain')
+			response:finish('preview not found')
+			return
+		end
+		response:set_header('Content-Type','image/png')
+		response:set_header('Pragma','no-cache')
+		response:set_header('Cache-Control','no-store, no-cache, must-revalidate')
+		if request.query.download then
+			response:set_header('Content-Disposition','attachment; filename="preview.png"')
+		end
+		response:finish(preview)
 	end)
 	server:post('/api/pcb/layers',function( request , response )
 		response:json({status='ok',layers=pcb:get_layers()})

@@ -18,14 +18,15 @@ private:
 	static void flush_fn(png_structp);
 	void write_data(png_bytep data, size_t size);
 	llae::buffer_ptr m_png_data;
+	bool m_negative = false;
 public:
 	RasterizatorWrite();
 	~RasterizatorWrite();
 	static void lbind(lua::state& l);
 	static lua::multiret lnew(lua::state& l);
 
-
 	void set_size(int64_t width,int64_t height);
+	void set_negative(bool negative) { m_negative = negative; }
 	void write(lua::state& l);
 	llae::buffer_ptr end_write(lua::state& l);
 };

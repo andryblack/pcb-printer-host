@@ -1,4 +1,5 @@
 local class = require 'llae.class'
+local async = require 'llae.async'
 local Protocol = require 'printer.protocol'
 
 local calibration = class(nil,'printer.calibration')
@@ -19,7 +20,7 @@ function calibration:prepare_print( protocol , position_x)
 	self._start_r = math.ceil(position_x)
 	self._start_l = self._start_r + width * 8
 	protocol:move_x(self._start_r-5,application.printer:get_idle_speed_x())
-	llae.sleep(1000)
+	async.pause(1000)
 	self._dir = 'r'
 	self._pos_y = 0
 	self._prev_y = 0

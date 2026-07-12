@@ -20,7 +20,7 @@
 	</div>
 	
 	<div class="form col-sm-4" >
-    <div class="form-row " >
+    <div class="row">
       <div class="form-group col-sm-6"> 
         <label for="config-flash-time">Flash time (us)</label>
         <input type="number" class="form-control" id="config-flash-time" value="<%= printer.pcb:get_config().flash_time  %>">
@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <div class="form-row">
+    <div class="row">
       <div class="form-group col-sm-6"> 
         <label for="config-position-x">Offset X (mm)</label>
         <input type="number" class="form-control" id="config-position-x" value="<%= printer.pcb:get_config().position_x  %>">
@@ -42,46 +42,44 @@
       </div>
     </div>
 
-     <div class="form-row">
+     <div class="row mb-1">
       <div class="input-group input-group-sm col-sm-6"> 
         <input type="text" class="form-control" id="pnt1-info-x" value="<%= (printer.pcb:get_pnt('pnt1') or {}).x or '-'  %>" />
         <input type="text" class="form-control" id="pnt1-info-y" value="<%= (printer.pcb:get_pnt('pnt1') or {}).y or '-'  %>"/>
-        <div class="input-group-append">
-          <button class="btn btn-outline-secondary" type="button" id="pnt1-select">
-            <span class="mr-0" data-feather="crosshair"></span>
-          </button>
-        </div>
+        <button class="btn btn-outline-secondary" type="button" id="pnt1-select">
+          <span data-feather="crosshair"></span>
+        </button>
       </div>
+      
+    </div>
+
+    <div class="row mb-4">
       <div class="input-group input-group-sm col-sm-6"> 
         <input type="text" class="form-control" id="pnt2-info-x" value="<%= (printer.pcb:get_pnt('pnt2') or {}).x or '-'  %>"/>
         <input type="text" class="form-control" id="pnt2-info-y" value="<%= (printer.pcb:get_pnt('pnt2') or {}).y or '-'  %>"/>
-        <div class="input-group-append">
-          <button class="btn btn-outline-secondary" type="button" id="pnt2-select">
-            <span class="mr-0" data-feather="crosshair"></span>
-          </button>
-        </div>
+        <button class="btn btn-outline-secondary" type="button" id="pnt2-select">
+          <span data-feather="crosshair"></span>
+        </button>
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group col-sm-6">
-        <div class="form-check">
-          <input class="form-control form-check-input" type="checkbox" value="" <%- printer.pcb:get_config().negative and 'checked' or '' %> id="config-negative">
-          <label class="form-check-label" for="config-negative">Negative</label>
+    <div class="pcb-switches mb-2">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" value="" <%- printer.pcb:get_config().negative and 'checked' or '' %> id="config-negative">
+        <label class="form-check-label" for="config-negative">Negative</label>
+      </div>
+      <div class="row g-1">
+        <div class="col-6">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" value="" <%- printer.pcb:get_config().flip_x and 'checked' or '' %> id="config-flip-x">
+            <label class="form-check-label" for="config-flip-x">Flip X</label>
+          </div>
         </div>
-      </div>     
-    </div>
-    <div class="form-row">
-      <div class="form-group col-sm-6">
-        <div class="form-check">
-          <input class="form-control form-check-input" type="checkbox" value="" <%- printer.pcb:get_config().flip_x and 'checked' or '' %> id="config-flip-x">
-          <label class="form-check-label" for="config-flip-x">Flip X</label>
-        </div>
-      </div>     
-      <div class="form-group col-sm-6">
-        <div class="form-check">
-          <input class="form-control form-check-input" type="checkbox" value="" <%- printer.pcb:get_config().flip_y and 'checked' or '' %> id="config-flip-y">
-          <label class="form-check-label" for="config-flip-y">Flip Y</label>
+        <div class="col-6">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" value="" <%- printer.pcb:get_config().flip_y and 'checked' or '' %> id="config-flip-y">
+            <label class="form-check-label" for="config-flip-y">Flip Y</label>
+          </div>
         </div>
       </div>
     </div>
@@ -90,18 +88,49 @@
 
 		<ul id="layers-table" class="list-group mb-2">
 		</ul>
-		<button id="update" class="btn btn-outline-secondary mt-1 mr-4" >
+		<button id="update" class="btn btn-outline-secondary mt-1 me-4" >
 	      <span data-feather="save"></span>Update</button> 
-    <button id="print" class="btn btn-outline-primary mt-1 mr-4" >
+    <button id="print" class="btn btn-outline-primary mt-1 me-4" >
         <span data-feather="play-circle"></span>Print</button> 
-    <button id="preview" class="btn btn-outline-primary mt-1 mr-4" >
-        <span data-feather="monitor"></span>Preview</button> 
+    <button id="preview" class="btn btn-outline-primary mt-1 me-2" >
+        <span data-feather="monitor"></span>Preview</button>
+    <button id="preview-view" class="btn btn-outline-secondary mt-1 me-4 d-none" type="button" title="View preview">
+        <span data-feather="eye"></span>
+    </button>
 	</div>
+</div>
+
+<div class="modal fade" id="pcb-preview-modal" tabindex="-1" role="dialog" aria-labelledby="pcb-preview-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pcb-preview-modal-label">Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-2 pcb-preview-modal-body text-center">
+        <img id="pcb-preview-image" src="" alt="PCB preview" class="img-fluid" />
+      </div>
+      <div class="modal-footer">
+        <a href="/api/pcb/preview.png?download=1" class="btn btn-outline-secondary" id="pcb-preview-download" download="preview.png">
+          <span data-feather="download"></span> Download
+        </a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 	
 
 -{css}-
 <style>
+.pcb-switches .form-check {
+  margin-bottom: 0;
+}
+
+.pcb-switches .form-check.form-switch {
+  font-size: 1rem;
+}
+
 .layers-list-item {
   height: 32px;
 }
@@ -148,6 +177,9 @@
   height: 18px;
 }
 
+.pcb-preview-modal-body {
+  background: #bdbdbd;
+}
 
 </style>
 -{scripts}-
@@ -176,7 +208,32 @@ page_ctx.on_change_state = function(state) {
 	//location.reload();
 	reload_svg();
 	reload_layers();
+	update_preview_controls();
 }
+
+page_ctx.on_update_state = function(st) {
+	update_preview_controls();
+}
+
+function update_preview_controls() {
+	var has_preview = typeof state !== 'undefined' && state.has_preview;
+	$('#preview-view').toggleClass('d-none', !has_preview);
+}
+
+update_preview_controls();
+
+var previewModalEl = document.getElementById('pcb-preview-modal');
+var previewModal = previewModalEl ? bootstrap.Modal.getOrCreateInstance(previewModalEl) : null;
+
+$('#preview-view').click(function() {
+	if (!(typeof state !== 'undefined' && state.has_preview)) {
+		return;
+	}
+	$('#pcb-preview-image').attr('src', '/api/pcb/preview.png?time=' + new Date().getTime());
+	if (previewModal) {
+		previewModal.show();
+	}
+});
 
 function update_svg() {
   $(".pcb-view-cont svg:first-child .point-select").bind("click", function(ev) {
@@ -226,13 +283,13 @@ function update_layers(data) {
 	$( "#layers-table" ).empty();
 	$.each(page_ctx.layers, function(i, item) {
 		let el = $('<il class="pt-1 pb-1">').appendTo('#layers-table');
-		el.append( feather.icons[item.icon].toSvg()).addClass("pl-2 pr-2");
+		el.append( feather.icons[item.icon].toSvg()).addClass("ps-2 pe-2");
 		el.append(item.name);
 		el.addClass("list-group-item")
 		    .addClass("list-group-item-action")
 		    .addClass('layers-list-item');
-		var btns = $('<div class="btn-toolbar float-right">').appendTo(el);
-    var bnt_visible = $('<button class="btn btn-outline-info btn-sm mr-0">');
+		var btns = $('<div class="btn-toolbar float-end">').appendTo(el);
+    var bnt_visible = $('<button class="btn btn-outline-info btn-sm me-0">');
 
     if (item.visible) {
         bnt_visible.append(feather.icons["eye"].toSvg());
@@ -245,7 +302,7 @@ function update_layers(data) {
                     visible_layer(i+1,!item.visible);
                   });
     btns.append( bnt_visible );
-		btns.append( $('<button class="btn btn-outline-danger btn-sm mr-0">')
+		btns.append( $('<button class="btn btn-outline-danger btn-sm me-0">')
 		        			.append(feather.icons["trash-2"].toSvg())
 		        			.click(function(event){
 		        				event.stopPropagation();
@@ -380,11 +437,12 @@ $("#preview").click(function() {
       .then(parseJSON)
       .then(checkResultStatus)
       .then(function(data) {
-        if (data.redirect) {
-          window.location.href = data.redirect;
-        }
+        update_state(data);
       }).catch(function(error) {
-        console.log('request failed', error);
+        bootstrap_alert.error(
+          '<p>Failed start preview</p>' +
+          '<hr><p class="mb-0">' + error + '</p>'
+        );
       });   
 });
 

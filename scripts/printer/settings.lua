@@ -138,6 +138,13 @@ number {
 }
 
 number {
+	name = 'idle_speed_x',
+	descr = 'X idle speed mm / s',
+	default = 25,
+	page = 'printer'
+}
+
+number {
 	name = 'flash_time',
 	descr = 'Laser flash time ms',
 	default = 50,
@@ -251,4 +258,12 @@ integer {
 	default = 1024,
 	page = 'ui'
 }
+
+boolean {
+	name = 'preview_negative',
+	descr = 'Render preview negative',
+	default = false,
+	page = 'ui'
+}
+
 ]]

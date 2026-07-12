@@ -9,13 +9,13 @@ printer.settings = require 'printer.settings_mgmt'
 
 
 
-local llae = require 'llae'
 local Connection = require 'printer.connection'
 local Protocol = require 'printer.protocol'
 
 local state_disconnected = 'disconnected'
 local state_connecting = 'connecting'
 local state_idle = 'idle'
+local state_moving = 'moving'
 local state_printing = 'printing'
 local state_paused = 'paused'
 
@@ -73,7 +73,59 @@ function printer:calc_speed( s )
 end
 
 function printer:get_idle_speed_x( )
-	return self:calc_speed(25.0) -- @todo
+	return self:calc_speed(self.settings.idle_speed_x)
+end
+
+function printer:get_idle_speed_x_mm_s( )
+	return self.settings.idle_speed_x
+end
+
+function printer:refresh_position(  )
+	self._protocol:ping()
+	self._protocol:wait()
+end
+
+function printer:get_position_x_mm(  )
+	return (self._position_x or 0) / self._resolution_x
+end
+
+function printer:go_to( target_x_mm, target_y_mm )
+	local initial_speed_mm_s = self:get_idle_speed_x_mm_s()
+	local speed_factor = 1.0
+	local min_speed_factor = 0.5
+
+	self:refresh_position()
+	self._position_y = math.ceil(target_y_mm * self._resolution_y)
+	self._protocol:move_y(self._position_y)
+	local pos_x_mm = self:get_position_x_mm()
+
+	while math.abs(target_x_mm - pos_x_mm) > 1.0 do
+		local delta_x_mm = target_x_mm - pos_x_mm
+		local next_x_mm = pos_x_mm + delta_x_mm * (2 / 3)
+		local speed_mm_s = initial_speed_mm_s * speed_factor
+
+		self._position_x = math.ceil(next_x_mm * self._resolution_x)
+		self._protocol:move_x(
+			self._position_x,
+			self:calc_speed(speed_mm_s),
+			Protocol.FLAG_WAIT_MOVE)
+		self._protocol:wait()
+
+		self:refresh_position()
+		pos_x_mm = self:get_position_x_mm()
+		speed_factor = math.max(speed_factor * 0.9, min_speed_factor)
+	end
+
+	local final_speed_mm_s = initial_speed_mm_s * speed_factor
+	self._position_x = math.ceil(target_x_mm * self._resolution_x)
+	self._protocol:move_x(
+		self._position_x,
+		self:calc_speed(final_speed_mm_s),
+		Protocol.FLAG_WAIT_MOVE)
+	self._protocol:wait()
+
+	self._position_y = math.ceil(target_y_mm * self._resolution_y)
+	self._protocol:move_y(self._position_y)
 end
 
 printer._actions = {}
@@ -138,10 +190,22 @@ printer._actions['go-to']=function(self,data)
 	if data.x == nil or data.y == nil then
 		error('missing target position')
 	end
-	self._position_x = math.ceil(data.x * self._resolution_x)
-	self._protocol:move_x(self._position_x,self:get_idle_speed_x(),Protocol.FLAG_WAIT_MOVE)
-	self._position_y = math.ceil(data.y * self._resolution_y)
-	self._protocol:move_y(self._position_y)
+	if self._state ~= state_idle then
+		error('printer is busy')
+	end
+	local prev_state = self:start_state(state_moving)
+	local sself = self
+	local target_x = data.x
+	local target_y = data.y
+	async.run(function()
+		local ok, err = xpcall(function()
+			sself:go_to(target_x, target_y)
+		end, debug.traceback)
+		sself:end_state(state_moving, prev_state)
+		if not ok then
+			log.error('go-to failed', err)
+		end
+	end)
 end
 printer._actions['setup-laser-pwm']=function(self,data)
 	if not data.enabled then
@@ -307,6 +371,7 @@ function printer:get_state( data )
 		progress = self._progress,
 		pos_x = self._position_x,
 		pos_y = self._position_y,
+		has_preview = self.pcb:has_preview(),
 	}
 	if data and data.need_speed_info then
 		res.speed_info = self._speed_samples
@@ -353,23 +418,23 @@ function printer:print(  )
 	local sself = self
 	self._progress = 0
 
-	local coro = coroutine.create(function()
+	async.run(function()
 		local r,err = xpcall(function()
 			print('start prepare print')
-			sself.pcb:prepare_print(self._protocol)
+			sself.pcb:prepare_print(sself._protocol)
 			print('complete prepare print')
 			while (not sself.pcb:print_complete())  do
-				if self._protocol:is_ready() and (self._state == state_printing) then
+				if sself._protocol:is_ready() and (sself._state == state_printing) then
 					sself.pcb:process_print( sself._protocol )
 				else
-					llae.sleep(100)
+					async.pause(100)
 				end
-				if self._state ~= state_printing and
-					self._state ~= state_paused then
+				if sself._state ~= state_printing and
+					sself._state ~= state_paused then
 					break
 				end
 				local crnt,all = sself.pcb:get_progress()
-				self._progress = crnt / all
+				sself._progress = crnt / all
 			end
 			print('complete process print')
 			sself:end_state(state_printing,state)
@@ -381,8 +446,6 @@ function printer:print(  )
 		end
 		collectgarbage('collect')
 	end)
-
-	assert(coroutine.resume(coro))
 end
 
 function printer:preview(  )
@@ -425,23 +488,23 @@ function printer:calibrate( data  )
 	self._progress = 0
 	local calibrate = (require 'printer.calibration').new()
 	calibrate:setup( data )
-	local coro = coroutine.create(function()
+	async.run(function()
 		local r,err = xpcall(function()
 			print('start calibrate prepare print')
-			calibrate:prepare_print(self._protocol, self._position_x)
+			calibrate:prepare_print(sself._protocol, sself._position_x)
 			print('complete calibrate prepare print')
 			while (not calibrate:print_complete())  do
-				if self._protocol:is_ready() and (self._state == state_printing) then
+				if sself._protocol:is_ready() and (sself._state == state_printing) then
 					calibrate:process_print( sself._protocol )
 				else
-					llae.sleep(100)
+					async.pause(100)
 				end
-				if self._state ~= state_printing and
-					self._state ~= state_paused then
+				if sself._state ~= state_printing and
+					sself._state ~= state_paused then
 					break
 				end
 				local crnt,all = calibrate:get_progress()
-				self._progress = crnt / all
+				sself._progress = crnt / all
 			end
 			print('complete calibrate process print')
 			sself:end_state(state_printing,state)
@@ -453,8 +516,6 @@ function printer:calibrate( data  )
 		end
 		collectgarbage('collect')
 	end)
-
-	assert(coroutine.resume(coro))
 end
 
 

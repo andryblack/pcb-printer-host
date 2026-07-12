@@ -24,6 +24,7 @@ function PCB:reset(  )
 	local svg = SvgGenerator.new('10mm','10mm','0 0 10 10','pcb-svg')
 	self._svg_content = ''
 	self._svg = svg:build()
+	self._preview = nil
 	self._config = {
 		position_x = 10.0,
 		position_y = 10.0,
@@ -556,8 +557,7 @@ function PCB:setup_rasterizator(  )
 end
 
 function PCB:prepare_preview(  )
-
-	
+	self._preview = nil
 
 	self:setup_rasterizator()
 
@@ -627,4 +627,13 @@ end
 function PCB:get_pnt( pnt )
 	return self[pnt]
 end
+
+function PCB:get_preview(  )
+	return self._preview
+end
+
+function PCB:has_preview(  )
+	return self._preview ~= nil
+end
+
 return PCB

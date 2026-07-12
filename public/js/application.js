@@ -39,9 +39,7 @@ bootstrap_alert.error = function(message) {
             $('#alert_placeholder').html(
             '<div class="alert alert-danger alert-dismissible fade show">' +
             message +
-            '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
-    		'<span aria-hidden="true">&times;</span>' +
-  			'</button>' +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
             '</div>'
         )
 };
@@ -49,12 +47,19 @@ bootstrap_alert.success = function(message) {
             $('#alert_placeholder').html(
             '<div class="alert alert-success alert-dismissible fade show">' +
             message +
-            '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
-    		'<span aria-hidden="true">&times;</span>' +
-  			'</button>' +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
             '</div>'
         )
 };
+
+function init_bootstrap_tooltips() {
+  if (typeof bootstrap === 'undefined') {
+    return;
+  }
+  document.querySelectorAll('[data-bs-toggle="tooltip"], [extra-data-bs-toggle="tooltip"]').forEach(function(el) {
+    new bootstrap.Tooltip(el);
+  });
+}
 
 function format_pos_x( pos ) {
   if (typeof pos !== 'number') {

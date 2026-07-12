@@ -15,9 +15,9 @@
 	<div class="btn-toolbar mb-2 mb-md-0">
 
 		<div class="dropdown">
-		    <button id="new-folder" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle mr-2"
-		    	data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-		    	data-placement="bottom" title="Create folder" extra-data-toggle="tooltip"
+		    <button id="new-folder" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle me-2"
+		    	data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+		    	data-bs-placement="bottom" title="Create folder" extra-data-bs-toggle="tooltip"
 		    	data-boundary="viewport">
 		      <span data-feather="folder-plus"></span>
 			</button>
@@ -33,8 +33,8 @@
 	  	<div class="dropdown" id="upload-menu">
 	    
 	  		<button id="upload" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
-		    	data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-		    	data-placement="bottom" title="Upload file" extra-data-toggle="tooltip"
+		    	data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+		    	data-bs-placement="bottom" title="Upload file" extra-data-bs-toggle="tooltip"
 		    	data-boundary="viewport">
 		      <span data-feather="upload"></span>
 		    </button>
@@ -43,10 +43,8 @@
 
 		    <div class="dropdown-menu p-4 col-sm-6" aria-labelledby="upload" >
 		    	<div class="form-group">
-			    	<div class="custom-file">
-					  <input id="upload-file" type="file" class="custom-file-input" onchange="file_select(this)">
-					  <label class="custom-file-label" for="upload-file" id="upload-file-name"> Choose file.. </label>
-					</div>
+			    	<input id="upload-file" type="file" class="form-control" onchange="file_select(this)">
+			    	<div class="form-text" id="upload-file-name">Choose file..</div>
 				</div>
 		    	<button id="upload-file-submit" type="submit" class="btn btn-primary">Upload</button>
 	  		</div>
@@ -90,10 +88,10 @@ function update_content(data) {
 		        	.addClass('files-list-item');
 		        	
 
-		        var btns = $('<div class="btn-toolbar float-right">').appendTo(el);
+		        var btns = $('<div class="btn-toolbar float-end">').appendTo(el);
 
 		        if (item.btn) {
-	        		btns.append( $('<button class="btn btn-outline-success btn-sm mr-2 visible-on-printer-state-idle">')
+	        		btns.append( $('<button class="btn btn-outline-success btn-sm me-2 visible-on-printer-state-idle">')
 	        			.append(feather.icons[item.btn.icon].toSvg())
 	        			.click(function(event){
 	        				event.stopPropagation();

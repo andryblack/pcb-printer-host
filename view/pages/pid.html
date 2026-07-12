@@ -19,34 +19,28 @@
   <canvas id="speed-chart" width="900" height="380"></canvas>
 </div>
 
-<div class="form-inline">
-	<button id="move-left" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" disabled="true">
+<div class="d-flex flex-wrap align-items-center gap-2">
+	<button id="move-left" class="btn btn-outline-secondary mt-1 me-2 enabled-on-printer-state-idle" disabled="true">
 	      <span data-feather="arrow-left-circle"></span></button> 
-	<button id="move-stop" class="btn btn-outline-secondary mt-1 mr-2 enabled-on-printer-state-idle" disabled="true">
+	<button id="move-stop" class="btn btn-outline-secondary mt-1 me-2 enabled-on-printer-state-idle" disabled="true">
 	      <span data-feather="stop-circle"></span></button> 
-	<button id="move-right" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-4" disabled="true">
+	<button id="move-right" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle me-4" disabled="true">
 	      <span data-feather="arrow-right-circle"></span></button> 
 	<div class="input-group mt-1 col-sm-2">
-		<div class="input-group-prepend" id="input-P-prepend">
-          <span class="input-group-text">P</span>
-        </div>
+		<span class="input-group-text" id="input-P-prepend">P</span>
 		<input type="number" step="any" id="input-P" class="form-control" aria-describedby="input-P-prepend" value="<%= settings.motor_pid_P %>" />
 	</div>
 	<div class="input-group mt-1 col-sm-2">
-		<div class="input-group-prepend" id="input-I-prepend">
-          <span class="input-group-text">I</span>
-        </div>
+		<span class="input-group-text" id="input-I-prepend">I</span>
 		<input type="number" step="any" id="input-I" class="form-control" aria-describedby="input-I-prepend" value="<%= settings.motor_pid_D %>"/>
 	</div>
 	<div class="input-group mt-1 col-sm-2">
-		<div class="input-group-prepend" id="input-D-prepend">
-          <span class="input-group-text">D</span>
-        </div>
+		<span class="input-group-text" id="input-D-prepend">D</span>
 		<input type="number" step="any" id="input-D" class="form-control " aria-describedby="input-D-prepend" value="<%= settings.motor_pid_D %>"/>
 	</div>
-	<button id="upload-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-1" disabled="true">
+	<button id="upload-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle me-1" disabled="true">
 	      <span data-feather="upload"></span></button> 
-	 <button id="save-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle mr-4" disabled="true">
+	 <button id="save-pid" class="btn btn-outline-secondary mt-1 enabled-on-printer-state-idle me-4" disabled="true">
 	      <span data-feather="save"></span></button> 
 	
 </div>

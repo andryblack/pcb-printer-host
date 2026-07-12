@@ -59,9 +59,20 @@ void RasterizatorWrite::set_size(int64_t w,int64_t h) {
 void RasterizatorWrite::write(lua::state& l) {
 	size_t len = 0;
 	const char* data = l.checklstring(2,len);
-	png_byte* row_pointers[] = { const_cast<png_byte*>(reinterpret_cast<const png_byte*>(data)) };
-    png_write_rows(m_write, row_pointers,
-       1);
+	if (m_negative) {
+		std::vector<uint8_t> temp(len);
+		temp.resize(len);
+		auto dst = temp.data();
+		auto d = reinterpret_cast<const uint8_t*>(data);
+		for (size_t i = 0; i < len; i++) {
+			*dst = ~(*d++);
+		}
+		png_byte* row_pointers[] = { temp.data() };
+		png_write_rows(m_write, row_pointers,1);
+	} else {
+		png_byte* row_pointers[] = { const_cast<png_byte*>(reinterpret_cast<const png_byte*>(data)) };
+		png_write_rows(m_write, row_pointers,1);
+	}
 }
 
 llae::buffer_ptr RasterizatorWrite::end_write(lua::state& l) {
@@ -72,6 +83,7 @@ llae::buffer_ptr RasterizatorWrite::end_write(lua::state& l) {
 void RasterizatorWrite::lbind(lua::state& l) {
 	lua::bind::function(l,"new",&RasterizatorWrite::lnew);
 	lua::bind::function(l,"set_size",&RasterizatorWrite::set_size);
+	lua::bind::function(l,"set_negative",&RasterizatorWrite::set_negative);
 	lua::bind::function(l,"write",&RasterizatorWrite::write);
 	lua::bind::function(l,"end_write",&RasterizatorWrite::end_write);
 }

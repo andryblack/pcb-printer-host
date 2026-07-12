@@ -56,7 +56,7 @@ end
 
 
 function map_types.select( config , id)
-	local r = {'<select class="custom-select" id="'..id..'" name="'..config.name..'">'}
+	local r = {'<select class="form-select" id="'..id..'" name="'..config.name..'">'}
 	for _,v in ipairs(config.values) do
 		local strval 
 		if config.format then
@@ -71,11 +71,14 @@ function map_types.select( config , id)
 end
 
 function map_types.boolean( config , id)
-	local r = {'<select class="custom-select" id="'..id..'" name="'..config.name..'">'}
-	table.insert(r,html.option{value='true',selected=(config.value) and true or nil}('YES'))
-	table.insert(r,html.option{value='false',selected=(not config.value) and true or nil}('NO'))
-	table.insert(r,'</select>')
-	return table.concat(r,'\n')
+	local checked = config.value and ' checked' or ''
+	return table.concat({
+		'<div class="form-check form-switch">',
+		'<input type="checkbox" class="form-check-input" id="', id,
+			'" name="', config.name, '" value="true"', checked, '>',
+		'<label class="form-check-label" for="', id, '">', config.descr, '</label>',
+		'</div>'
+	})
 end
 
 function map_types.list( config, id )
@@ -93,14 +96,10 @@ function map_types.list( config, id )
 					placeholder = config.placeholder, 
 					value = v }())
 		if i==len then
-			table.insert(r,'<div class="input-group-append list-edit-append">')
-			table.insert(r,'<button class="btn btn-outline-info" data-list-name="'..config.name..'" type="button" ><span data-feather="plus-square"></span></button>')
-			table.insert(r,'</div>')
+			table.insert(r,'<button class="btn btn-outline-info list-edit-append" data-list-name="'..config.name..'" type="button" ><span data-feather="plus-square"></span></button>')
 		end
 		if len~=1 then
-			table.insert(r,'<div class="input-group-append list-edit-remove">')
-			table.insert(r,'<button data-item-idx="'..i..'" data-list-name="'..config.name..'" class="btn btn-outline-danger" type="button" ><span data-feather="minus-square"></span></button>')
-			table.insert(r,'</div>')
+			table.insert(r,'<button data-item-idx="'..i..'" data-list-name="'..config.name..'" class="btn btn-outline-danger list-edit-remove" type="button" ><span data-feather="minus-square"></span></button>')
 		end
 		table.insert(r,'</div>')
 	end
@@ -120,9 +119,12 @@ end
 
 function settings:format_input( config )
 	local id = 'settings-contol-' .. config.name
+	if config.type == 'boolean' then
+		return map_types.boolean(config, id)
+	end
 	local input_type = map_types[config.control or config.type] or 'text'
 	return table.concat{
-			html.label{ ['for'] = id }(config.descr),
+			html.label{ ['for'] = id, class='form-label' }(config.descr),
 			type(input_type) == 'function' and input_type(config,id) or
 				html.input{ 
 					id=id, class='form-control',
@@ -135,7 +137,11 @@ end
 
 function settings:apply( page, data )
 	for _,config in ipairs(self:get_page(page)) do
-		config:set_value(data[config.name])
+		if config.type == 'boolean' then
+			config:set_value(data[config.name] ~= nil and data[config.name] or false)
+		else
+			config:set_value(data[config.name])
+		end
 	end
 	application.printer:save_settings()
 end
