@@ -20,6 +20,11 @@ local sidebar = {
 		text = 'Camera',
 		icon = 'video'
 	},
+	{
+		name = 'ui',
+		text = 'UI',
+		icon = 'monitor'
+	},
 }
 
 

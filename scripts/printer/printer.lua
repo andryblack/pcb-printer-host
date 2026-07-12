@@ -118,12 +118,18 @@ end
 
 printer._actions['move-x']=function(self,data) 
 	local pos_x = self._position_x or 0
+	if self.settings.move_flip_x then
+		data.x = -data.x
+	end
 	local target = pos_x + data.x * self._resolution_x
 	self._position_x = math.ceil(target)
 	self._protocol:move_x(self._position_x,self:get_idle_speed_x(),Protocol.FLAG_WAIT_MOVE)
 end
 printer._actions['move-y']=function(self,data) 
 	local pos_y = self._position_y or 0
+	if self.settings.move_flip_y then
+		data.y = -data.y
+	end
 	local target = pos_y + data.y * self._resolution_y
 	self._position_y = math.ceil(target)
 	self._protocol:move_y(self._position_y)

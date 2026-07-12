@@ -199,14 +199,14 @@ integer {
 integer {
 	name = 'camera_pos_x',
 	descr = 'Camera crosshair X',
-	page = 'camera',
+	page = 'ui',
 	default = 320
 }
 
 integer {
 	name = 'camera_pos_y',
 	descr = 'Camera crosshair Y',
-	page = 'camera',
+	page = 'ui',
 	default = 240
 }
 
@@ -214,13 +214,27 @@ boolean {
 	name = 'camera_flip_x',
 	descr = 'Flip image X',
 	default = false,
-	page = 'camera'
+	page = 'ui'
 }
 
 boolean {
 	name = 'camera_flip_y',
 	descr = 'Flip image Y',
 	default = false,
-	page = 'camera'
+	page = 'ui'
+}
+
+boolean {
+	name = 'move_flip_x',
+	descr = 'Invert X movement',
+	default = false,
+	page = 'ui'
+}
+
+boolean {
+	name = 'move_flip_y',
+	descr = 'Invert Y movement',
+	default = false,
+	page = 'ui'
 }
 ]]
