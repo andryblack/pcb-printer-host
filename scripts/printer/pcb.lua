@@ -591,7 +591,7 @@ function PCB:select_pnt( data )
 		error('not found point ' .. tostring(data.idx))
 	end
 	pnt = self:flip_point(pnt)
-	print('set',data.pnt,pnt.x,pnt.y)
+	log.info('set',data.pnt,pnt.x,pnt.y)
 	self[data.pnt] = pnt
 	return pnt
 end
@@ -610,7 +610,7 @@ function PCB:offset_pnt( data )
 		self._config.position_x = pnt.px - pnt.x
 		self._config.position_y = pnt.py - pnt.y 
 	end
-	print('offset',data.pnt,pnt.px,pnt.py)
+	log.info('offset',data.pnt,pnt.px,pnt.py)
 	self:update_transform()
 end
 

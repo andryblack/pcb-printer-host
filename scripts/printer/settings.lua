@@ -132,15 +132,15 @@ number {
 
 number {
 	name = 'print_speed',
-	descr = 'X speed mm / s',
+	descr = 'default printing X speed mm / s',
 	default = 500,
 	page = 'printer'
 }
 
 number {
-	name = 'idle_speed_x',
-	descr = 'X idle speed mm / s',
-	default = 25,
+	name = 'print_speed_y',
+	descr = 'default printing Y speed mm / s',
+	default = 1,
 	page = 'printer'
 }
 
@@ -152,6 +152,12 @@ number {
 }
 
 
+number {
+	name = 'idle_speed_x',
+	descr = 'poition X move speed mm / s',
+	default = 5,
+	page = 'printer'
+}
 
 boolean {
 	name = 'pcb_negative',

@@ -96,11 +96,19 @@ Protocol.setup_laser_t = {
 	{'u16','param'}
 }
 
-Protocol.PARAM_STEPPER_MAX_SPEED = 0
-Protocol.PARAM_STEPPER_START_SPEED = 1
-Protocol.PARAM_STEPPER_ACCEL = 2
-Protocol.PARAM_STEPPER_DECCEL= 3
-Protocol.PARAM_STEPPER_STOP_STEPS = 4
+local params = {
+	PARAM_STEPPER_MAX_SPEED = 0,
+	PARAM_STEPPER_START_SPEED = 1,
+	PARAM_STEPPER_ACCEL = 2,
+	PARAM_STEPPER_DECCEL= 3,
+	PARAM_STEPPER_STOP_STEPS = 4
+}
+
+local param_name = {}
+for n,v in pairs(params) do
+	Protocol[n] = v
+	param_name[v]=n
+end
 
 Protocol.set_param_t = {
 	{'u8','param'},
@@ -156,7 +164,7 @@ function Protocol:_check_next(  )
 	if not self._recv_seq then
 		local next_cmd = table.remove(self._scheduled,1)
 		if next_cmd then
-			self:_cmd_impl(next_cmd.cmd,next_cmd.data,next_cmd.wait)
+			self:_cmd_impl(next_cmd.cmd,next_cmd.data,next_cmd.wait,next_cmd.info)
 		end
 	end
 end
@@ -219,14 +227,17 @@ function Protocol:on_response( header, data )
 		   (header.cmd == Protocol.CMD_MOVE_Y) then
 		local o,s = struct.read(data,Protocol.status_resp_t,0)
 		if o.status ~= Protocol.CODE_OK then
-			print('command failed, staus:',o.status)
+			log.error('command failed, staus:',o.status)
 		end
 	else
-		print('unknown response:',header.cmd)
+		log.erro('unknown response:',header.cmd)
 	end
 end
 
-function Protocol:_cmd_impl( cmd, data , wait)
+function Protocol:_cmd_impl( cmd, data , wait, info)
+	if self._recv_seq then
+		log.error('send cmd without wait prev')
+	end
 	self._recv_seq = self._send_seq
 	local header = struct.new(self.header_t,{
 		seq = self._send_seq,
@@ -239,13 +250,14 @@ function Protocol:_cmd_impl( cmd, data , wait)
 	},'')
 	packet = packet .. struct.writeu8(CRC8.calc(packet,#packet))
 	local raw = self._encoder:encode(packet)
-	log.info('>',self._cmd_names[cmd],#raw)
+	log.info('>',self._cmd_names[cmd],self._recv_seq,info)
 	self._delegate:write(raw)
 	local to = 1000
 	if cmd == Protocol.CMD_PRINT then
 		to = self._print_timeout
 	end
 	if not wait then
+		self._timout_started = self._recv_seq
 		self._timeout:start(function()
 			self:_on_timeout()
 		end,to,0)
@@ -254,12 +266,12 @@ function Protocol:_cmd_impl( cmd, data , wait)
 	end
 end
 
-function Protocol:cmd( cmd, data , wait)
+function Protocol:cmd( cmd, data , wait, info)
 	--print('send cmd',cmd)
 	if self:is_ready() then
-		self:_cmd_impl(cmd,data,wait)
+		self:_cmd_impl(cmd,data,wait,info)
 	else
-		table.insert(self._scheduled,{cmd=cmd,data=data,wait=wait})
+		table.insert(self._scheduled,{cmd=cmd,data=data,wait=wait,info=info})
 	end
 end
 
@@ -273,7 +285,7 @@ function Protocol:move_x( pos , speed , flags )
 		speed = speed,
 		flags = flags or 0
 	}):build()
-	self:cmd(self.CMD_MOVE_X,data, ((flags or 0) & Protocol.FLAG_WAIT_MOVE) ~= 0)
+	self:cmd(self.CMD_MOVE_X,data, ((flags or 0) & Protocol.FLAG_WAIT_MOVE) ~= 0, string.format('pos: %d, speed: %d',pos,speed))
 end
 function Protocol:move_y( pos , flags )
 	local data = struct.new(self.move_y_t,{
@@ -301,7 +313,7 @@ function Protocol:print( start, speed, move_y, data )
 		move_y = move_y,
 		len = #data
 	}):build()
-	self:cmd(self.CMD_PRINT,data_hdr .. data)
+	self:cmd(self.CMD_PRINT,data_hdr .. data,false,string.format('start: %d, speed: %d, move_y: %d',start,speed,move_y))
 end
 function Protocol:setup_motor( P,I,D, pwm_min, pwm_max )
 	local data = struct.new(self.setup_motor_t,{
@@ -311,21 +323,21 @@ function Protocol:setup_motor( P,I,D, pwm_min, pwm_max )
 		pwm_min = pwm_min,
 		pwm_max = pwm_max
 	}):build()
-	self:cmd(self.CMD_SETUP_MOTOR,data)
+	self:cmd(self.CMD_SETUP_MOTOR,data,false,string.format('min_pwm: %d, max_pwm: %d, P: %f, I: %f, D: %f',pwm_min,pwm_max,P,I,D))
 end
 function Protocol:setup_laser( mode, param )
 	local data = struct.new(self.setup_laser_t,{
 		mode = mode,
 		param = param
 	}):build()
-	self:cmd(self.CMD_SETUP_LASER,data)
+	self:cmd(self.CMD_SETUP_LASER,data,false,string.format('mode: %d, param: %d',mode,param))
 end
 function Protocol:set_param( param, value )
 	local data = struct.new(self.set_param_t,{
 		param = param,
 		value = value
 	}):build()
-	self:cmd(self.CMD_SET_STEPPER_PARAM,data)
+	self:cmd(self.CMD_SET_STEPPER_PARAM,data,false,string.format('%s = %d',param_name[param] or '',value))
 end
 function Protocol:info(  )
 	self:cmd(self.CMD_INFO)
@@ -335,9 +347,16 @@ function Protocol:flash( )
 end
 function Protocol:_on_timeout(  )
 	if self._recv_seq then
-		log.error('cmd_timeout')
-		self._recv_seq = nil
-		self:_check_next()
+		if self._timout_started then
+			if self._timout_started == self._recv_seq then
+				log.error('cmd_timeout',self._recv_seq)
+				self._timout_started = nil
+				self._recv_seq = nil
+				self:_check_next()
+			end
+		end
+	elseif self._timout_started then
+		self._timout_started = nil
 	end
 end
 

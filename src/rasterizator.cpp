@@ -1,5 +1,6 @@
 #include "rasterizator.h"
 #include "rasterizator_write.h"
+#include "llae/logger.h"
 #include <uv/luv.h>
 #include <uv/work.h>
 #include <lua/bind.h>
@@ -243,56 +244,43 @@ void Rasterizator::inverse(lua::state& l) {
 		m_line[len] = swap_bits(m_line[len]);
 	}
 }
+
+static geom::V get_pnt(lua::state& l,int idx,const char* X,const char* Y) {
+	geom::V res;
+	l.getfield(idx,X);
+	res.x = l.tonumber(-1);
+	l.pop(1);
+	l.getfield(idx,Y);
+	res.y = l.tonumber(-1);
+	l.pop(1);
+	return res;
+}
 void Rasterizator::setup_transform(lua::state& l) {
 	l.checktype(2,lua::value_type::table);
 	l.checktype(3,lua::value_type::table);
-	geom::V p1;
-	l.getfield(2,"x");
-	p1.x = l.tonumber(-1);
-	l.pop(1);
-	l.getfield(2,"y");
-	p1.y = l.tonumber(-1);
-	l.pop(1);
-	geom::V pp1;
-	l.getfield(2,"px");
-	pp1.x = l.tonumber(-1);
-	l.pop(1);
-	l.getfield(2,"py");
-	pp1.y = l.tonumber(-1);
-	l.pop(1);
-	geom::V p2;
-	l.getfield(3,"x");
-	p2.x = l.tonumber(-1);
-	l.pop(1);
-	l.getfield(3,"y");
-	p2.y = l.tonumber(-1);
-	l.pop(1);
-	geom::V pp2;
-	l.getfield(3,"px");
-	pp2.x = l.tonumber(-1);
-	l.pop(1);
-	l.getfield(3,"py");
-	pp2.y = l.tonumber(-1);
-	l.pop(1);
+	geom::V p1 = get_pnt(l,2,"x","y");
+	geom::V pp1 = get_pnt(l,2,"px","py"); // real
+	geom::V p2 = get_pnt(l,3,"x","y");
+	geom::V pp2 = get_pnt(l,3,"px","py"); // real
 
-	std::cout << "p1:" << p1.x << ", " << p1.y << std::endl;
-	std::cout << "p2:" << p2.x << ", " << p2.y << std::endl;
+	LOG_INFO( "p1:" << p1.x << ", " << p1.y);
+	LOG_INFO( "p2:" << p2.x << ", " << p2.y);
 	
-	std::cout << "pp1:" << pp1.x << ", " << pp1.y << std::endl;
-	std::cout << "pp2:" << pp2.x << ", " << pp2.y << std::endl;
+	LOG_INFO( "pp1:" << pp1.x << ", " << pp1.y);
+	LOG_INFO( "pp2:" << pp2.x << ", " << pp2.y);
 	
 	geom::V vo = p2 - p1;
 	geom::V vt = pp2 - pp1; // pp2 + (pp1-p1) - pp1 = pp2-p1-pp1
 	double diro = vo.norm().dir();
 	double dirt = vt.norm().dir();
 
-	std::cout << "doro: " << diro << ", dirt: " << dirt << std::endl;
+	LOG_INFO( "doro: " << diro << ", dirt: " << dirt);
 
 	geom::T t;
 	t.translate(p1).rotate(dirt-diro).translate(-p1);
 
-	std::cout << "v: " << t.v.x << "," << t.v.y << std::endl;
-	std::cout << "m: " << t.m.m[0] << "," << t.m.m[1] << "," << t.m.m[2] << "," << t.m.m[3] << std::endl;
+	LOG_INFO( "v: " << t.v.x << "," << t.v.y);
+	LOG_INFO( "m: " << t.m.m[0] << "," << t.m.m[1] << "," << t.m.m[2] << "," << t.m.m[3]);
 	m_t = t;
 	
 }

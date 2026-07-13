@@ -14,6 +14,21 @@ local CMD_WRITE = 0x31
 local CMD_ERASE = 0x43
 local CMD_EXT_ERASE = 0x44
 
+local command_names = {
+	[CMD_GET] = 'Get',
+	[0x01] = 'Get Version',
+	[0x02] = 'Get ID',
+	[0x11] = 'Read Memory',
+	[CMD_GO] = 'Go',
+	[CMD_WRITE] = 'Write Memory',
+	[CMD_ERASE] = 'Erase',
+	[CMD_EXT_ERASE] = 'Extended erase',
+	[0x63] = 'Write Protect',
+	[0x73] = 'Write Unprotect',
+	[0x82] = 'Readout Protect',
+	[0x92] = 'Readout Unprotect',
+}
+
 local FLASH_BASE = 0x08000000
 local WRITE_CHUNK = 256
 
@@ -45,12 +60,13 @@ function firmware:read_byte( timeout_ms )
 	timeout_ms = timeout_ms or 3000
 	local remaining = math.ceil(timeout_ms / 10)
 	while true do
-		local data = self._serial:raw_read(1)
+		local data,err = self._serial:raw_read(1)
 		if data and #data > 0 then
 			return string.byte(tostring(data), 1)
 		end
 		remaining = remaining - 1
 		if remaining <= 0 then
+			log.error('failed read byte',err)
 			error('serial read timeout')
 		end
 		async.pause(10)
@@ -65,7 +81,7 @@ function firmware:read_exact( count, timeout_ms )
 	while len < count do
 		local data = self._serial:raw_read(count - len)
 		if data and #data > 0 then
-			parts[#parts + 1] = data
+			parts[#parts + 1] = tostring(data)
 			len = len + #data
 		end
 		if len >= count then
@@ -93,28 +109,53 @@ function firmware:send_cmd( cmd )
 end
 
 function firmware:drain()
+	log.info('start drain')
 	while true do
 		local data = self._serial:raw_read(1024)
 		if not data or #data == 0 then
 			break
 		end
+		log.info('drain',#data)
 	end
+	log.info('end drain')
 end
 
 function firmware:sync( max_attempts )
 	max_attempts = max_attempts or 20
-	for _ = 1, max_attempts do
-		self._serial:write(string.char(SYNC))
+	for i = 1, max_attempts do
+		log.info('sync attempt',i)
+		local res,err = self._serial:write(string.char(SYNC))
+		if not res then
+			log.error('failed serial write',err)
+		end
 		local ok, byte = pcall(function()
 			return self:read_byte(500)
 		end)
 		if ok and byte == ACK then
-			return
+			log.info('response to sync command')
+			async.pause(100)
+			return true
+		end
+		async.pause(200)
+
+		local res,err = self._serial:write(string.char(0x01,0xFE))
+		if not res then
+			log.error('failed serial write 2',err)
+		end
+		local ok, byte = pcall(function()
+			return self:read_byte(500)
+		end)
+		if ok and byte == ACK then
+			log.info('response to get version, sync completed')
+			async.pause(100)
+			self:drain()
+			return true
 		end
 		async.pause(200)
 	end
-	error('bootloader sync failed')
+	return false,'sync failed'
 end
+
 
 function firmware:get_commands()
 	self:send_cmd(CMD_GET)
@@ -123,10 +164,12 @@ function firmware:get_commands()
 	self:expect_ack()
 	local version = string.byte(payload, 1)
 	local commands = {}
+	log.info('bootloader version', string.format('0x%02x',version), 'commands', #payload - 1)
 	for i = 2, #payload do
-		commands[string.byte(payload, i)] = true
+		local cmd = string.byte(payload, i)
+		commands[cmd] = true
+		log.info(string.format('0x%02x',cmd),command_names[cmd])
 	end
-	log.info('bootloader version', version, 'commands', #payload - 1)
 	return version, commands
 end
 
@@ -182,7 +225,9 @@ function firmware:flash_firmware( data )
 	self:update_progress(0)
 
 	self:drain()
-	self:sync()
+	if not self:sync() then
+		return false,'sync failed'
+	end
 
 	local _, commands = self:get_commands()
 	self:update_status('erasing')
@@ -205,24 +250,29 @@ function firmware:flash_firmware( data )
 	end
 
 	self:go(FLASH_BASE)
+	return true
 end
 
 function firmware:flash( opts )
 	local device = opts.device
 	local data = opts.data
+	self._status = opts.status
 
 	self:update_status('connecting')
 
-	local serial_connection, err = serial.open(device, { baudrate = 115200 })
+	local serial_connection, err = serial.open(device, { baudrate = 9600 })
 	if not serial_connection then
 		return false, 'failed to open serial device: ' .. tostring(err)
 	end
-
 	serial_connection:set_parity('even')
 	self._serial = serial_connection
-	self._status = opts.status
+	
 
-	self:flash_firmware(data)
+	local res,err = self:flash_firmware(data)
+	if not res then
+		self:update_status('error')
+		return nil,err
+	end
 
 	self:update_status('done')
 	self:close()

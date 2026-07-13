@@ -105,6 +105,8 @@ function server:_init( settings )
 					sidebar_active = v.name,
 					page = v.name,
 					settings = settings,
+					content_page = 'settings',
+					printer = application.printer,
 					dark_theme = application.printer.settings:get('dark_theme'),
 				})
 			end)

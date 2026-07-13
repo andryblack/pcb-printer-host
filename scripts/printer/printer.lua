@@ -66,7 +66,7 @@ function printer:init(  )
 			table.insert(self.printer._speed_samples, {
 				speed=(1000000 / (sample.dt*self.printer._resolution_x)), -- cnt / us,  / ctnt/mm = mm/us = mm/s
 				pwm=sample.pwm})
-			log.info('SPEED',sample.dt,sample.pwm)
+			log.debug('SPEED',sample.dt,sample.pwm)
 		end
 	end
 	self._connection = Connection.create( self.settings.device , connection_delegate )
@@ -76,15 +76,14 @@ function printer:init(  )
 	protocol_delegate._connection = self._connection
 end
 
+-- return controller motor speed : laser ticks / encoder step
 function printer:calc_speed( s )
-	return math.ceil(1000000/(self._resolution_x * s)) -- (cnt/mm) * (mm/s) = cnt / s
+	local ticks_per_s = self._resolution_x * s -- (cnt/mm) * (mm/s) = cnt / s
+	return math.ceil(ticks_per_s) -- (lticks/s) / (cnt/s) = (lticks / cnt)
 end
 
+-- return movement speed mm/s
 function printer:get_idle_speed_x( )
-	return self:calc_speed(self.settings.idle_speed_x)
-end
-
-function printer:get_idle_speed_x_mm_s( )
 	return self.settings.idle_speed_x
 end
 
@@ -98,7 +97,7 @@ function printer:get_position_x_mm(  )
 end
 
 function printer:go_to( target_x_mm, target_y_mm )
-	local initial_speed_mm_s = self:get_idle_speed_x_mm_s()
+	local initial_speed_mm_s = self:get_idle_speed_x()
 	local speed_factor = 1.0
 	local min_speed_factor = 0.5
 
@@ -142,9 +141,11 @@ printer._actions['pid-move'] = function(self,data)
 	local speed = self:calc_speed(data.s)
 	log.info('>>>>>>> START',speed)
 	self._target_speed = data.s
+	local target_x_mm = data.p
+	self._position_x = math.ceil(target_x_mm * self._resolution_x)
 	self._protocol:move_x(
-		math.ceil(data.p * self._resolution_x),
-		math.ceil(speed),
+		self._position_x,
+		speed,
 		Protocol.FLAG_WRITE_SPEED);
 
 
@@ -183,7 +184,8 @@ printer._actions['move-x']=function(self,data)
 	end
 	local target = pos_x + data.x * self._resolution_x
 	self._position_x = math.ceil(target)
-	self._protocol:move_x(self._position_x,self:get_idle_speed_x(),Protocol.FLAG_WAIT_MOVE)
+	local speed = self:calc_speed(self:get_idle_speed_x())
+	self._protocol:move_x(self._position_x,speed,Protocol.FLAG_WAIT_MOVE)
 end
 printer._actions['move-y']=function(self,data) 
 	local pos_y = self._position_y or 0
@@ -271,10 +273,13 @@ function printer:connect(  )
 
 		if res then
 
-			self:sync_protocol()
+			if self:sync_protocol() then
 
-			self._state = state_idle
-			self:upload_settings()
+				self._state = state_idle
+				self:upload_settings()
+			elseif self._state == state_connecting then
+				self._state = state_disconnected
+			end
 		else
 			log.error('failed open connection',err)
 			self._auto_connect = 30
@@ -288,12 +293,20 @@ function printer:sync_protocol()
 	self._protocol:reset()
 	self._position_updated = false
 	while not self._position_updated do
+		if not self._connection:is_opened() then
+			log.error('connection not opened')
+			return false
+		end
 		if self._protocol:is_ready() then
 			self._protocol:ping()
 		end
 		async.pause(1000)
 	end
 	log.info('finish sync protocol')
+	async.pause(100)
+	self._protocol:info()
+	async.pause(100)
+	return true
 end
 
 function printer:upload_settings() 
@@ -549,18 +562,21 @@ function printer:flash_firmware( data )
 
 		self:disconnect()
 
+		local fwres,fwerr
+
 		local res,err = xpcall(function()
-			firmware.flash{
+			fwres,fwerr = firmware:flash{
 				data = data,
 				status = self._firmware,
 				printer = self,
 				device = self.settings.device
 			}
 		end,debug.traceback)
-		if not res then
+		if not res or not fwres then
+			local rerr = wferr or err or 'unknown'
 			self._firmware.status = 'error'
-			self._firmware.error = err
-			log.error('flash firmware error',err)
+			self._firmware.error = rerr
+			log.error('flash firmware error',rerr)
 		else
 			self._firmware.status = 'done'
 		end
