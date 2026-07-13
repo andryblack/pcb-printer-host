@@ -23,7 +23,10 @@
     <div class="row">
       <div class="form-group col-sm-6"> 
         <label for="config-flash-time">Flash time (us)</label>
+        <div class="input-group mb-3">
         <input type="number" class="form-control" id="config-flash-time" value="<%= printer.pcb:get_config().flash_time  %>">
+        <span class="input-group-text" id="config-flash-percent">10%</span>
+        </div>
       </div>
       <div class="form-group col-sm-6"> 
         <label for="config-speed">Speed (mm/s)</label>
@@ -221,6 +224,23 @@ function update_preview_controls() {
 }
 
 update_preview_controls();
+
+function update_flash_percent() {
+  var flashTime = parseFloat($("#config-flash-time").val());
+  var speed = parseFloat($("#config-speed").val());
+  var resolution = page_ctx.printer_resolution_x;
+  if (!flashTime || !speed || !resolution) {
+    $("#config-flash-percent").text('-');
+    return;
+  }
+  // time per encoder count (us): 1e6 / (mm/s * counts/mm)
+  var dtUs = 1000000 / (speed * resolution);
+  var percent = flashTime / dtUs * 100;
+  $("#config-flash-percent").text(percent.toFixed(1) + '%');
+}
+
+$("#config-flash-time, #config-speed").on('input change', update_flash_percent);
+update_flash_percent();
 
 var previewModalEl = document.getElementById('pcb-preview-modal');
 var previewModal = previewModalEl ? bootstrap.Modal.getOrCreateInstance(previewModalEl) : null;
