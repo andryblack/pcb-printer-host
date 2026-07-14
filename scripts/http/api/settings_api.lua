@@ -2,6 +2,33 @@ local lpath = require 'llae.path'
 
 local settings_api = {}
 
+function settings_api:set( req )
+	local data = req.json or {}
+	local settings = application.printer.settings
+	local updated = false
+	for name, value in pairs(data) do
+		local item = settings._by_name[name]
+		if not item then
+			return {
+				status = 'error',
+				error = 'unknown setting: ' .. tostring(name)
+			}
+		end
+		item:set_value(value)
+		updated = true
+	end
+	if not updated then
+		return {
+			status = 'error',
+			error = 'no settings to update'
+		}
+	end
+	application.printer:save_settings()
+	return {
+		status = 'ok'
+	}
+end
+
 function settings_api:import( req )
 	if not req.multipart then
 		return {
@@ -48,6 +75,9 @@ function settings_api.make_routes( server )
 	end)
 	server:post('/api/settings/import', function( request, response )
 		response:json(settings_api:import(request))
+	end)
+	server:post('/api/settings/set', function( request, response )
+		response:json(settings_api:set(request))
 	end)
 end
 

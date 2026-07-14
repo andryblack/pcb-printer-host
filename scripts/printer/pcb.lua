@@ -424,7 +424,7 @@ function PCB:get_right( )
 	return self._config.position_x + (self._bounds and (self._bounds:x()+self._bounds:width()) or 0)
 end
 
-function PCB:apply_config(config)
+function PCB:set_config( config )
 	for k,v in pairs(config or {}) do
 		self._config[k] = v
 		log.info('set config value:',k,v,type(v))
@@ -432,7 +432,8 @@ function PCB:apply_config(config)
 end
 
 function PCB:update( config )
-	self:apply_config(config)
+	self:set_config(config)
+
 	local sself = self
 	local state = application.printer:start_state('pcb_processing')
 
