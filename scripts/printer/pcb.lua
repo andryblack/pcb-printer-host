@@ -424,11 +424,15 @@ function PCB:get_right( )
 	return self._config.position_x + (self._bounds and (self._bounds:x()+self._bounds:width()) or 0)
 end
 
-function PCB:update( config )
+function PCB:set_config( config )
 	for k,v in pairs(config or {}) do
 		self._config[k] = v
 		print('set config value:',k,v,type(v))
 	end
+end
+
+function PCB:update( config )
+	self:set_config(config)
 	local sself = self
 	local state = application.printer:start_state('pcb_processing')
 

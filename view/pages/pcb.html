@@ -26,11 +26,19 @@
         <div class="input-group mb-3">
         <input type="number" class="form-control" id="config-flash-time" value="<%= printer.pcb:get_config().flash_time  %>">
         <span class="input-group-text" id="config-flash-percent">10%</span>
+        <button class="btn btn-outline-secondary" type="button" id="config-flash-time-save" title="Save to settings">
+          <span data-feather="save"></span>
+        </button>
         </div>
       </div>
       <div class="form-group col-sm-6"> 
         <label for="config-speed">Speed (mm/s)</label>
+        <div class="input-group mb-3">
         <input type="number" class="form-control" id="config-speed" value="<%= printer.pcb:get_config().speed  %>">
+        <button class="btn btn-outline-secondary" type="button" id="config-speed-save" title="Save to settings">
+          <span data-feather="save"></span>
+        </button>
+        </div>
       </div>
     </div>
 
@@ -169,6 +177,10 @@
   height: 20px;
 }
 
+.input-group > .btn .feather {
+  margin-right: 0px;
+}
+
 .layers-list-item .btn .feather {
   margin-left: 4px;
   margin-right: 4px;
@@ -239,8 +251,84 @@ function update_flash_percent() {
   $("#config-flash-percent").text(percent.toFixed(1) + '%');
 }
 
-$("#config-flash-time, #config-speed").on('input change', update_flash_percent);
+function apply_runtime_config() {
+  var flashTime = parseFloat($("#config-flash-time").val());
+  var speed = parseFloat($("#config-speed").val());
+  var config = {};
+  if (!isNaN(flashTime)) {
+    config.flash_time = flashTime;
+  }
+  if (!isNaN(speed)) {
+    config.speed = speed;
+  }
+  if (!Object.keys(config).length) {
+    return;
+  }
+  fetch('/api/pcb/config',{
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body:JSON.stringify(config)
+      })
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(checkResultStatus)
+      .catch(function(error) {
+        console.log('failed apply config', error);
+      });
+}
+
+var apply_runtime_config_timer = null;
+function schedule_apply_runtime_config() {
+  update_flash_percent();
+  if (apply_runtime_config_timer) {
+    clearTimeout(apply_runtime_config_timer);
+  }
+  apply_runtime_config_timer = setTimeout(apply_runtime_config, 300);
+}
+
+$("#config-flash-time, #config-speed").on('input change', schedule_apply_runtime_config);
 update_flash_percent();
+
+function save_setting(name, value) {
+  return fetch('/api/settings/set',{
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body:JSON.stringify({[name]: value})
+      })
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(checkResultStatus);
+}
+
+$("#config-flash-time-save").click(function() {
+  var value = parseFloat($("#config-flash-time").val());
+  apply_runtime_config();
+  save_setting('flash_time', value)
+    .catch(function(error) {
+      bootstrap_alert.error(
+        '<p>Failed save flash time</p>'+
+        '<hr><p class="mb-0">' + error + '</p>'
+      );
+    });
+});
+
+$("#config-speed-save").click(function() {
+  var value = parseFloat($("#config-speed").val());
+  apply_runtime_config();
+  save_setting('print_speed', value)
+    .catch(function(error) {
+      bootstrap_alert.error(
+        '<p>Failed save speed</p>'+
+        '<hr><p class="mb-0">' + error + '</p>'
+      );
+    });
+});
 
 var previewModalEl = document.getElementById('pcb-preview-modal');
 var previewModal = previewModalEl ? bootstrap.Modal.getOrCreateInstance(previewModalEl) : null;
