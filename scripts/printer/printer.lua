@@ -434,10 +434,12 @@ function printer:on_timer(  )
 	
 end
 
-function printer:print(  )
+function printer:print( config )
 	local state = self:start_state(state_printing)
 	local sself = self
 	self._progress = 0
+	log.info('printer:print')
+	self.pcb:apply_config( config )
 
 	async.run(function()
 		local r,err = xpcall(function()

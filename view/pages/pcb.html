@@ -399,6 +399,7 @@ $("#update").click(function() {
 	let config = {
 		negative: $("#config-negative").is(":checked"),
     speed: parseFloat($("#config-speed").val()),
+    flash_time: parseFloat($("#config-flash-time").val()),
     position_x: parseFloat($("#config-position-x").val()),
     position_y: parseFloat($("#config-position-y").val()),
     flip_x: $('#config-flip-x').is(":checked"),
@@ -424,13 +425,17 @@ $("#update").click(function() {
 });
 
 $("#print").click(function() {
+  let config = {
+    speed: parseFloat($("#config-speed").val()),
+    flash_time: parseFloat($("#config-flash-time").val())
+  };
   fetch('/api/pcb/print',{
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body:JSON.stringify({})
+        body:JSON.stringify(config)
       })
       .then(checkStatus)
       .then(parseJSON)

@@ -414,7 +414,7 @@ function PCB:build_print(  )
 	
 	self._svg = svg:build()
 	
-	print('PCB build_print end')
+	log.info('PCB build_print end')
 end
 
 function PCB:get_left( )
@@ -424,23 +424,27 @@ function PCB:get_right( )
 	return self._config.position_x + (self._bounds and (self._bounds:x()+self._bounds:width()) or 0)
 end
 
-function PCB:update( config )
+function PCB:apply_config(config)
 	for k,v in pairs(config or {}) do
 		self._config[k] = v
-		print('set config value:',k,v,type(v))
+		log.info('set config value:',k,v,type(v))
 	end
+end
+
+function PCB:update( config )
+	self:apply_config(config)
 	local sself = self
 	local state = application.printer:start_state('pcb_processing')
 
 	async.run(function()
 		local r,err = pcall(function()
 			sself:build_print()
-			print('PCB update complete')
+			log.info('PCB update complete')
 			application.printer:end_state('pcb_processing',state)
 		end)
 		if not r then
 			application.printer:end_state('pcb_processing',state)
-			print('PCB update error',err)
+			log.info('PCB update error',err)
 		end
 		collectgarbage('collect')
 	end)

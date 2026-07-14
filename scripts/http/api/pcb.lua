@@ -104,9 +104,9 @@ function pcb:open_drill( file )
 	return {status='error',error=err}
 end
 
-function pcb:print(  )
+function pcb:print( config )
 	local res,err = pcall(function()
-		application.printer:print()
+		application.printer:print( config )
 	end)
 	if res then
 		log.info('print started')
@@ -182,7 +182,7 @@ function pcb.make_routes( server )
 		response:json(res)
 	end)
 	server:post('/api/pcb/print',function( request , response)
-		response:json(pcb:print())
+		response:json(pcb:print(request.json))
 	end)
 	server:post('/api/pcb/preview',function( request , response )
 		response:json(pcb:preview())
